@@ -1,0 +1,111 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Red vs Blue — Progress</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{--bg:#070B14;--line:#1C2740;--txt:#E6ECF5;--mut:#8391AB;--blue:#4C9AFF;--red:#FF4D55;--amber:#FFB547;--green:#3DDC97;--gold:#FFD166;--D:"Chakra Petch",Helvetica,Arial,sans-serif;--M:"IBM Plex Mono",Menlo,monospace}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(1200px 600px at 50% 30%,#1A1020 0%,var(--bg) 60%);color:var(--txt);font:14px/1.4 "IBM Plex Sans",Helvetica,Arial,sans-serif;width:1600px;height:900px;display:grid;grid-template-rows:60px 1fr;gap:12px;padding:14px;overflow:hidden}
+.panel{background:linear-gradient(180deg,rgba(18,28,50,.85),rgba(10,16,30,.9));border:1px solid var(--line);border-radius:10px;position:relative;overflow:hidden;padding:16px 20px}
+h3{margin:0 0 4px;font:700 16px var(--D);letter-spacing:.02em}
+.sub{font:500 12px var(--M);color:var(--mut);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px}
+.top{display:flex;align-items:center;gap:26px;padding:0 22px}
+.brand{font:700 20px var(--D);letter-spacing:.04em;display:flex;align-items:center;gap:10px}
+.brand .r{color:var(--red)}.brand .b{color:var(--blue)}
+.pill{margin-left:auto;font:600 13px var(--M);color:var(--mut);background:rgba(20,30,54,.9);border:1px solid var(--line);padding:6px 12px;border-radius:6px}
+.grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:12px;min-height:0}
+.big{font:700 34px var(--D);font-variant-numeric:tabular-nums}
+.big.red{color:var(--red)}.big.green{color:var(--green)}
+.row{display:flex;align-items:baseline;gap:12px}
+.delta{font:600 13px var(--M);color:var(--green)}
+svg{display:block;width:100%}
+.ladder{display:flex;flex-direction:column-reverse;gap:8px;margin-top:8px}
+.rung{display:flex;align-items:center;gap:12px;padding:9px 14px;border-radius:8px;border:1px solid var(--line);background:rgba(14,22,40,.6)}
+.rung .ln{font:700 14px var(--D);width:56px}
+.rung .nm{flex:1;color:var(--mut)}
+.rung .st{font:600 12px var(--M);padding:3px 9px;border-radius:4px}
+.cleared{border-color:rgba(61,220,151,.4);background:rgba(15,45,32,.4)}.cleared .nm{color:var(--txt)}.cleared .st{background:rgba(61,220,151,.2);color:var(--green)}
+.active{border-color:var(--red);box-shadow:0 0 16px rgba(255,77,85,.25)}.active .nm{color:var(--txt)}.active .st{background:rgba(255,77,85,.2);color:var(--red)}
+.locked{opacity:.5}.locked .st{background:rgba(131,145,171,.15);color:var(--mut)}
+.legend{display:flex;gap:18px;font-size:13px;color:var(--mut);margin-top:10px}
+.legend i{display:inline-block;width:22px;height:4px;border-radius:2px;margin-right:6px;vertical-align:2px}
+.barwrap{display:flex;align-items:flex-end;gap:40px;height:150px;margin-top:20px;padding:0 30px}
+.barcol{display:flex;flex-direction:column;align-items:center;gap:10px;flex:1}
+.bar{width:90px;border-radius:8px 8px 0 0;position:relative}
+.bar span{position:absolute;top:-26px;left:50%;transform:translateX(-50%);font:700 18px var(--D);white-space:nowrap}
+.barlab{font:600 13px "IBM Plex Sans",Helvetica,Arial,sans-serif;color:var(--mut);text-align:center}
+</style></head><body>
+<div class="panel top">
+ <div class="brand">📈 <span><span class="r">RED</span> vs <span class="b">BLUE</span></span> — how the attacker learned</div>
+ <div class="pill">🎲 Simulation · 142 games · data from MongoDB</div>
+</div>
+
+<div class="grid">
+ <!-- Chart 1: success rate over time -->
+ <div class="panel">
+  <h3>① Red's success rate is climbing</h3>
+  <div class="sub">win rate, smoothed over 142 games</div>
+  <div class="row"><span class="big red">71%</span><span class="delta">▲ from 14% at game 1</span></div>
+  <svg viewBox="0 0 700 200" height="200" style="margin-top:6px">
+   <defs>
+    <linearGradient id="area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF4D55" stop-opacity=".32"/><stop offset="1" stop-color="#FF4D55" stop-opacity="0"/></linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+   </defs>
+   <g stroke="#1C2740" stroke-width="1"><line x1="40" y1="30" x2="690" y2="30"/><line x1="40" y1="80" x2="690" y2="80"/><line x1="40" y1="130" x2="690" y2="130"/><line x1="40" y1="170" x2="690" y2="170"/></g>
+   <text x="34" y="34" fill="#8391AB" font-size="12" text-anchor="end">100%</text><text x="34" y="134" fill="#8391AB" font-size="12" text-anchor="end">50%</text><text x="34" y="174" fill="#8391AB" font-size="12" text-anchor="end">0%</text>
+   <!-- level-up markers -->
+   <g stroke="#3DDC97" stroke-dasharray="3 5" opacity=".55"><line x1="250" y1="20" x2="250" y2="170"/><line x1="470" y1="20" x2="470" y2="170"/></g>
+   <text x="250" y="16" fill="#3DDC97" font-size="11" text-anchor="middle">cleared L1</text><text x="470" y="16" fill="#3DDC97" font-size="11" text-anchor="middle">cleared L2</text>
+   <polygon fill="url(#area)" points="40,158 110,160 180,150 250,152 320,120 390,124 470,96 540,88 610,74 690,58 690,170 40,170"/>
+   <polyline fill="none" stroke="#FF4D55" stroke-width="3.5" filter="url(#glow)" points="40,158 110,160 180,150 250,152 320,120 390,124 470,96 540,88 610,74 690,58"/>
+   <circle cx="690" cy="58" r="6" fill="#FF4D55" filter="url(#glow)"/>
+   <text x="40" y="192" fill="#8391AB" font-size="12">game 1</text><text x="690" y="192" fill="#8391AB" font-size="12" text-anchor="end">game 142</text>
+  </svg>
+ </div>
+
+ <!-- Chart 2: level ladder -->
+ <div class="panel">
+  <h3>② Red is climbing the defense levels</h3>
+  <div class="sub">must clear each level before the next</div>
+  <div class="ladder">
+   <div class="rung locked"><span class="ln" style="color:var(--mut)">LVL 5</span><span class="nm">Advanced — decoys + ransomware</span><span class="st">locked</span></div>
+   <div class="rung locked"><span class="ln" style="color:var(--mut)">LVL 4</span><span class="nm">Persistent — backdoors survive resets</span><span class="st">locked</span></div>
+   <div class="rung active"><span class="ln" style="color:var(--red)">LVL 3</span><span class="nm">Quiet operator — hides in normal logins</span><span class="st">in progress · 67%</span></div>
+   <div class="rung cleared"><span class="ln" style="color:var(--green)">LVL 2</span><span class="nm">Phisher — steals passwords, moves sideways</span><span class="st">✓ cleared 83%</span></div>
+   <div class="rung cleared"><span class="ln" style="color:var(--green)">LVL 1</span><span class="nm">Noisy opportunist — brute force</span><span class="st">✓ cleared 83%</span></div>
+  </div>
+ </div>
+
+ <!-- Chart 3: speed to win -->
+ <div class="panel">
+  <h3>③ Red wins faster than it used to</h3>
+  <div class="sub">average turns to capture the crown jewel</div>
+  <div class="barwrap" style="margin-top:34px;height:130px">
+   <div class="barcol"><div class="bar" style="height:112px;background:linear-gradient(180deg,#5B6780,#39445C)"><span style="color:#93A0B8">14 turns</span></div><div class="barlab">first 20 games</div></div>
+   <div class="barcol"><div class="bar" style="height:84px;background:linear-gradient(180deg,#FFB547,#B8761E)"><span style="color:#FFB547">11 turns</span></div><div class="barlab">games 40–90</div></div>
+   <div class="barcol"><div class="bar" style="height:54px;background:linear-gradient(180deg,#FF4D55,#B8323A)"><span style="color:#FF6A70">7 turns</span></div><div class="barlab">last 20 games</div></div>
+  </div>
+  <div class="legend" style="justify-content:center;margin-top:22px">Half the time it took at the start — Red goes straight for the Printer now</div>
+ </div>
+
+ <!-- Chart 4: memory on vs off -->
+ <div class="panel">
+  <h3>④ Memory is what makes the difference</h3>
+  <div class="sub">same 5 levels, with and without recall</div>
+  <svg viewBox="0 0 640 200" height="200" style="margin-top:8px">
+   <defs><filter id="g2"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+   <g stroke="#1C2740"><line x1="60" y1="20" x2="60" y2="160"/><line x1="60" y1="160" x2="620" y2="160"/></g>
+   <text x="52" y="26" fill="#8391AB" font-size="12" text-anchor="end">100%</text><text x="52" y="94" fill="#8391AB" font-size="12" text-anchor="end">50%</text><text x="52" y="164" fill="#8391AB" font-size="12" text-anchor="end">0%</text>
+   <!-- memory off bar -->
+   <rect x="150" y="107" width="120" height="53" rx="6" fill="#39445C"/>
+   <text x="210" y="98" fill="#93A0B8" font-size="20" font-weight="700" font-family="Chakra Petch, Helvetica, Arial, sans-serif" text-anchor="middle">38%</text>
+   <text x="210" y="182" fill="#8391AB" font-size="14" text-anchor="middle">Memory OFF</text>
+   <!-- memory on bar -->
+   <rect x="400" y="61" width="120" height="99" rx="6" fill="#FF4D55" filter="url(#g2)"/>
+   <text x="460" y="52" fill="#FF6A70" font-size="20" font-weight="700" font-family="Chakra Petch, Helvetica, Arial, sans-serif" text-anchor="middle">71%</text>
+   <text x="460" y="182" fill="#E6ECF5" font-size="14" text-anchor="middle" font-weight="600">Memory ON</text>
+   <text x="335" y="120" fill="#3DDC97" font-size="14" font-weight="700" text-anchor="middle" font-family="Chakra Petch, Helvetica, Arial, sans-serif">+33 pts</text>
+  </svg>
+  <div class="legend" style="justify-content:center">Turn recall off and Red forgets the Printer trick every game</div>
+ </div>
+</div>
+</body></html>

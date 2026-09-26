@@ -1,0 +1,212 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Red vs Blue — Arena</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{--bg:#070B14;--panel:#0C1322;--line:#1C2740;--txt:#E6ECF5;--mut:#8391AB;--blue:#4C9AFF;--red:#FF4D55;--amber:#FFB547;--green:#3DDC97;--gold:#FFD166}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(1200px 600px at 30% 40%,#0E1830 0%,var(--bg) 60%);color:var(--txt);font:14px/1.35 "IBM Plex Sans",Helvetica,Arial,sans-serif;width:1600px;height:900px;display:grid;grid-template-rows:60px 1fr 190px;gap:10px;padding:12px;overflow:hidden}
+.panel{background:linear-gradient(180deg,rgba(18,28,50,.85),rgba(10,16,30,.9));border:1px solid var(--line);border-radius:10px;position:relative;overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+h3{margin:0;font:600 12px "IBM Plex Mono",Menlo,monospace;color:var(--mut);text-transform:uppercase;letter-spacing:.12em}
+.top{display:flex;align-items:center;gap:30px;padding:0 20px}
+.brand{font:700 20px "Chakra Petch",Helvetica,Arial,sans-serif;letter-spacing:.04em;display:flex;align-items:center;gap:10px}
+.brand .r{color:var(--red)}.brand .b{color:var(--blue)}
+.stat .k{font:500 11px "IBM Plex Mono",Menlo,monospace;color:var(--mut);letter-spacing:.1em;text-transform:uppercase}
+.stat .v{font:700 20px "Chakra Petch",Helvetica,Arial,sans-serif;font-variant-numeric:tabular-nums}
+.wave{font:700 13px "Chakra Petch",Helvetica,Arial,sans-serif;padding:4px 10px;border:1px solid var(--amber);color:var(--amber);border-radius:4px;letter-spacing:.1em;box-shadow:0 0 12px rgba(255,181,71,.35)}
+.tug{flex:1}.tug .bar{height:12px;border-radius:6px;background:linear-gradient(90deg,var(--blue) 0 64%,var(--red) 64% 100%);box-shadow:0 0 14px rgba(76,154,255,.35),0 0 14px rgba(255,77,85,.25)}
+.mid{display:grid;grid-template-columns:2fr 1fr;gap:10px;min-height:0}
+.map{padding:12px 14px}
+.stage{position:absolute;left:14px;right:14px;top:34px;bottom:34px}
+.stage canvas,.stage svg{position:absolute;inset:0;width:100%;height:100%}
+.intent{position:absolute;top:40px;right:16px;background:rgba(60,35,5,.85);border:1px dashed var(--amber);color:var(--amber);padding:6px 11px;border-radius:6px;font-size:13px;z-index:3;box-shadow:0 0 16px rgba(255,181,71,.2)}
+.legend{position:absolute;bottom:10px;left:16px;display:flex;gap:16px;font-size:12px;color:var(--mut)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.log{padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.log div{padding:7px 10px;border-radius:6px;border-left:3px solid;background:rgba(14,22,40,.8);font-size:14px}
+.r{border-color:var(--red)}.b{border-color:var(--blue)}
+.log .new{box-shadow:0 0 0 1px var(--amber),0 0 18px rgba(255,181,71,.25)}
+.tag{font:700 13px "Chakra Petch",Helvetica,Arial,sans-serif;margin-right:7px;letter-spacing:.03em}.tr{color:var(--red)}.tb{color:var(--blue)}
+.bot{display:grid;grid-template-columns:300px 1fr 440px;gap:10px}
+.bot .panel{padding:12px 16px}
+.btn{display:inline-block;padding:9px 15px;border:1px solid var(--line);border-radius:6px;margin:10px 5px 0 0;background:#0E1628;font:600 14px "Chakra Petch",Helvetica,Arial,sans-serif}
+.on{background:var(--blue);border-color:var(--blue);box-shadow:0 0 14px rgba(76,154,255,.55)}
+.diff div{font:13px "IBM Plex Mono",Menlo,monospace;padding:5px 8px;border-radius:4px;margin-top:6px}
+.add{background:rgba(22,70,50,.6);color:var(--green)}.del{background:rgba(80,20,25,.6);color:#FF9A9D;text-decoration:line-through}
+</style></head><body>
+<div class="panel top">
+ <div class="brand">🛡️ <span><span class="r">RED</span> vs <span class="b">BLUE</span></span></div>
+ <div class="wave">WAVE 8 / 20</div>
+ <div class="stat"><div class="k">Game</div><div class="v">#1,284</div></div>
+ <div class="stat"><div class="k">Uptime</div><div class="v" style="color:var(--green)">97%</div></div>
+ <div class="stat"><div class="k">Real users served</div><div class="v">91%</div></div>
+ <div class="stat"><div class="k">Botnet</div><div class="v" style="color:var(--red)">4,000</div></div>
+ <div class="stat"><div class="k">Playbook</div><div class="v">v42</div></div>
+ <div class="tug"><div class="k stat" style="margin-bottom:6px"><span class="k">Who's winning — <span style="color:var(--blue)">Blue 64%</span></span></div><div class="bar"></div></div>
+</div>
+
+<div class="mid">
+ <div class="panel map"><h3>The network — live traffic</h3>
+  <div class="intent">⚠ Red's next move: expensive searches → pile load onto Database</div>
+  <div class="stage">
+   <canvas id="globe"></canvas>
+   <svg id="svg" viewBox="0 0 1000 560" preserveAspectRatio="xMidYMid meet">
+    <defs>
+     <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+     <filter id="soft"><feGaussianBlur stdDeviation="9"/></filter>
+     <radialGradient id="gBlue" cx="40%" cy="35%"><stop offset="0" stop-color="#2E5FB8"/><stop offset="1" stop-color="#0A1630"/></radialGradient>
+     <radialGradient id="gRed" cx="40%" cy="35%"><stop offset="0" stop-color="#B8323A"/><stop offset="1" stop-color="#2A0A10"/></radialGradient>
+     <radialGradient id="gAmber" cx="40%" cy="35%"><stop offset="0" stop-color="#B8761E"/><stop offset="1" stop-color="#2A1606"/></radialGradient>
+     <radialGradient id="gGold" cx="40%" cy="35%"><stop offset="0" stop-color="#6B5418"/><stop offset="1" stop-color="#1A1406"/></radialGradient>
+     <!-- paths -->
+     <path id="p_b1" d="M30 110 C 80 150, 110 240, 150 280"/>
+     <path id="p_b2" d="M30 190 C 80 210, 110 260, 150 280"/>
+     <path id="p_b3" d="M30 280 C 70 285, 110 275, 150 280"/>
+     <path id="p_b4" d="M30 370 C 80 350, 110 300, 150 280"/>
+     <path id="p_ic" d="M150 280 C 190 270, 230 290, 270 280"/>
+     <path id="p_cl" d="M270 280 C 310 270, 350 290, 390 280"/>
+     <path id="p_l1" d="M390 280 C 430 250, 450 180, 500 165"/>
+     <path id="p_l2" d="M390 280 C 430 320, 450 380, 500 400"/>
+     <path id="p_1a" d="M500 165 C 560 175, 600 250, 640 280"/>
+     <path id="p_2a" d="M500 400 C 560 390, 600 310, 640 280"/>
+     <path id="p_ad" d="M640 280 C 680 275, 710 285, 750 280"/>
+     <path id="p_hit" d="M30 450 C 150 560, 380 560, 500 400"/>
+     <path id="p_bounce" d="M30 110 C 250 -40, 650 0, 740 250"/>
+     <path id="p_users" d="M270 70 C 200 80, 160 150, 150 280"/>
+    </defs>
+
+    <!-- ribbons: glow underlay -->
+    <g fill="none" stroke-linecap="round" filter="url(#soft)" opacity=".75">
+     <use href="#p_ic" stroke="#FF4D55" stroke-width="22"/>
+     <use href="#p_cl" stroke="#FFB547" stroke-width="14"/>
+     <use href="#p_hit" stroke="#FF4D55" stroke-width="14"/>
+     <use href="#p_l1" stroke="#4C9AFF" stroke-width="12"/><use href="#p_l2" stroke="#FF4D55" stroke-width="10"/>
+     <use href="#p_1a" stroke="#4C9AFF" stroke-width="8"/><use href="#p_2a" stroke="#4C9AFF" stroke-width="7"/><use href="#p_ad" stroke="#4C9AFF" stroke-width="6"/>
+    </g>
+    <!-- strands -->
+    <g fill="none" stroke-linecap="round" filter="url(#glow)" id="strands"></g>
+    <g fill="none" stroke-linecap="round">
+     <use href="#p_bounce" stroke="#8391AB" stroke-width="2" stroke-dasharray="3 9" opacity=".8"/>
+     <use href="#p_users" stroke="#C9D3E6" stroke-width="2" stroke-dasharray="4 7" opacity=".5"/>
+    </g>
+    <!-- flowing dashes -->
+    <g fill="none" stroke-linecap="round" class="flow" id="flow"></g>
+    <!-- packets -->
+    <g id="packets"></g>
+
+    <!-- botnet -->
+    <g id="botnet"></g>
+    <text x="12" y="80" fill="#FF4D55" font-size="15" font-weight="700" font-family="Chakra Petch, Helvetica, Arial, sans-serif">🤖 BOTNET · 4,000</text>
+
+    <!-- nodes -->
+    <g id="nodes" font-family="IBM Plex Sans, Helvetica, Arial, sans-serif" text-anchor="middle"></g>
+
+    <!-- annotations -->
+    <g font-size="13" font-weight="600" font-family="IBM Plex Sans, Helvetica, Arial, sans-serif">
+     <text x="200" y="440" fill="#FF6A70">⚡ direct hit: Red found Web server 2's</text>
+     <text x="200" y="457" fill="#FF6A70">real address and skipped the CDN</text>
+     <text x="820" y="150" fill="#9AA7C0" text-anchor="middle">✖ tried Database directly:</text>
+     <text x="820" y="167" fill="#9AA7C0" text-anchor="middle">no public address — bounced</text>
+    </g>
+   </svg>
+  </div>
+  <div class="legend"><span><i style="background:var(--blue)"></i>Safe</span><span><i style="background:var(--amber)"></i>Overloaded</span><span><i style="background:var(--red)"></i>Under attack</span><span><i style="background:#fff"></i>Real users</span><span><i style="background:#5B6780"></i>Blackholed</span><span>🌐 reachable by Red · 🔒 not reachable</span><span>▬ node health</span></div>
+ </div>
+
+ <div class="panel log"><h3 style="margin-bottom:4px">Play-by-play — newest first</h3>
+  <div class="r new"><span class="tag tr">RED T8</span>Flooded Web server 2 directly — CDN bypassed</div>
+  <div class="b"><span class="tag tb">BLUE T8</span>Inspected traffic: origin address leaked!</div>
+  <div class="r"><span class="tag tr">RED T7</span>Recon: found Web server 2's real address</div>
+  <div class="b"><span class="tag tb">BLUE T7</span>Rate limit on Load balancer 🚦</div>
+  <div class="r"><span class="tag tr">RED T6</span>Botnet grew to 4,000 bots</div>
+  <div class="b"><span class="tag tb">BLUE T6</span>Inspected traffic: volume flood found!</div>
+  <div class="r"><span class="tag tr">RED T5</span>Volume flood → CDN (hidden)</div>
+  <div class="b"><span class="tag tb">BLUE T5</span>Scaled web servers +1 (💰 cost)</div>
+  <div class="r"><span class="tag tr">RED T4</span>Pulse burst → Load balancer</div>
+  <div class="b"><span class="tag tb">BLUE T4</span>Absorb at CDN ☁️</div>
+ </div>
+</div>
+
+<div class="bot">
+ <div class="panel"><h3>Controls</h3><span class="btn">▶ Play</span><span class="btn">⏸</span><span class="btn">⏭ Step</span><br><span class="btn">1x</span><span class="btn">10x</span><span class="btn on">100x</span></div>
+ <div class="panel"><h3>Blue win rate over 1,284 games — the "wow"</h3>
+  <svg viewBox="0 0 800 130" width="100%" height="140" style="margin-top:6px">
+   <defs><linearGradient id="area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4C9AFF" stop-opacity=".35"/><stop offset="1" stop-color="#4C9AFF" stop-opacity="0"/></linearGradient></defs>
+   <g stroke="#1C2740"><line x1="0" y1="30" x2="800" y2="30"/><line x1="0" y1="70" x2="800" y2="70"/><line x1="0" y1="110" x2="800" y2="110"/></g>
+   <polygon fill="url(#area)" points="0,104 60,102 120,97 180,99 240,86 300,80 360,76 420,65 480,62 540,54 600,52 660,46 720,44 790,40 790,110 0,110"/>
+   <polyline fill="none" stroke="#4C9AFF" stroke-width="3.5" filter="url(#glow)" points="0,104 60,102 120,97 180,99 240,86 300,80 360,76 420,65 480,62 540,54 600,52 660,46 720,44 790,40"/>
+   <circle cx="790" cy="40" r="6" fill="#4C9AFF" filter="url(#glow)"/>
+   <text x="772" y="26" fill="#E6ECF5" font-size="15" font-weight="700" font-family="Chakra Petch, Helvetica, Arial, sans-serif" text-anchor="end">64%</text>
+   <text x="6" y="96" fill="#8391AB" font-size="13">12%</text>
+   <text x="6" y="126" fill="#8391AB" font-size="12">game 1</text><text x="794" y="126" fill="#8391AB" font-size="12" text-anchor="end">game 1,284</text>
+  </svg></div>
+ <div class="panel diff"><h3>Playbook v41 → v42 (written by Blue coach)</h3>
+  <div class="del">- scale up servers at first sign of load</div>
+  <div class="add">+ inspect traffic before spending on scaling</div>
+  <div class="add">+ rate-limit at load balancer when bots &gt; 2,000</div>
+  <div style="color:var(--mut);font:12px 'IBM Plex Sans',Helvetica,Arial,sans-serif">learned from game #1,271 (similar attack found via Vector Search)</div></div>
+</div>
+
+<script>
+const NS="http://www.w3.org/2000/svg";
+const el=(t,a,p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);p&&p.appendChild(e);return e};
+// strands: several thin offset copies per ribbon
+const strands=document.getElementById('strands'), flow=document.getElementById('flow');
+const R=[["p_b1","#FF4D55",3],["p_b2","#FF4D55",3],["p_b3","#FF4D55",3],["p_b4","#FF4D55",3],["p_ic","#FF4D55",5],["p_cl","#FFB547",4],["p_hit","#FF4D55",4],["p_l1","#6FB0FF",4],["p_l2","#FF6A70",3],["p_1a","#6FB0FF",3],["p_2a","#6FB0FF",3],["p_ad","#6FB0FF",3]];
+R.forEach(([id,c,n])=>{for(let i=0;i<n;i++){const off=(i-(n-1)/2)*3.2;el('use',{href:'#'+id,stroke:c,'stroke-width':i==Math.floor(n/2)?2.4:1.3,opacity:.55+.15*(i%2),transform:`translate(0 ${off})`},strands)}
+ const f=el('use',{href:'#'+id,stroke:'#fff','stroke-width':1.6,opacity:.7,'stroke-dasharray':'2 16'},flow);
+ const a=el('animate',{attributeName:'stroke-dashoffset',from:'0',to:'-72',dur:(id.startsWith('p_b')||id=='p_hit'||id=='p_ic')?'0.9s':'1.6s',repeatCount:'indefinite'},f);});
+// packets
+const pk=document.getElementById('packets');
+[["p_ic","#FF4D55",6,1.4],["p_cl","#FFB547",4,1.8],["p_hit","#FF4D55",6,2.2],["p_l1","#fff",3,2],["p_l2","#fff",2,2],["p_1a","#fff",2,2.4],["p_2a","#fff",2,2.4],["p_users","#fff",3,2.6],["p_b1","#FF4D55",2,1.2],["p_b3","#FF4D55",2,1.1],["p_b4","#FF4D55",2,1.3]].forEach(([id,c,n,d])=>{for(let i=0;i<n;i++){const ci=el('circle',{r:c=="#fff"?3.2:3.8,fill:c,filter:'url(#glow)'},pk);const m=el('animateMotion',{dur:d+'s',repeatCount:'indefinite',begin:(-d*i/n)+'s'},ci);el('mpath',{href:'#'+id},m)}});
+// botnet
+const bn=document.getElementById('botnet');[110,190,280,370,450].forEach(y=>{el('circle',{cx:30,cy:y,r:14,fill:'#FF4D55',opacity:.25,filter:'url(#soft)'},bn);el('circle',{cx:30,cy:y,r:6.5,fill:'#FF4D55',filter:'url(#glow)'},bn)});
+// icons (24x24 centered)
+const I={
+ globe:'<circle cx="0" cy="0" r="10"/><ellipse cx="0" cy="0" rx="4.5" ry="10"/><line x1="-10" y1="0" x2="10" y2="0"/><path d="M-8.5 -5 H8.5 M-8.5 5 H8.5"/>',
+ cloud:'<path d="M-9 5 H8 A5 5 0 0 0 7 -5 A7 7 0 0 0 -6 -4 A4.5 4.5 0 0 0 -9 5 Z" fill="#fff" stroke="none"/>',
+ lb:'<rect x="-4" y="-11" width="8" height="6" rx="1.5"/><rect x="-12" y="5" width="7" height="6" rx="1.5"/><rect x="-3.5" y="5" width="7" height="6" rx="1.5"/><rect x="5" y="5" width="7" height="6" rx="1.5"/><path d="M0 -5 V0 M-8.5 5 V0 H8.5 V5 M0 0 V5"/>',
+ server:'<rect x="-10" y="-11" width="20" height="6" rx="1.5"/><rect x="-10" y="-3" width="20" height="6" rx="1.5"/><rect x="-10" y="5" width="20" height="6" rx="1.5"/><circle cx="6" cy="-8" r="1" fill="#fff"/><circle cx="6" cy="0" r="1" fill="#fff"/><circle cx="6" cy="8" r="1" fill="#fff"/>',
+ gear:'<circle cx="0" cy="0" r="4"/><path d="M0 -11 V-7 M0 7 V11 M-11 0 H-7 M7 0 H11 M-7.8 -7.8 L-5 -5 M5 5 L7.8 7.8 M7.8 -7.8 L5 -5 M-5 5 L-7.8 7.8"/><circle cx="0" cy="0" r="7.5"/>',
+ crown:'<path d="M-11 7 L-11 -6 L-5 0 L0 -9 L5 0 L11 -6 L11 7 Z" fill="#FFD166" stroke="#FFD166"/><line x1="-11" y1="10" x2="11" y2="10" stroke="#FFD166"/>',
+ users:'<circle cx="-4" cy="-4" r="3.5"/><circle cx="5" cy="-3" r="3"/><path d="M-11 9 C-10 1 2 1 3 9 M3 5 C4 1 11 1 11 8"/>'};
+const N=[
+ {x:150,y:280,n:'Internet',ic:'globe',g:'gRed',s:'#FF4D55',lab:null},
+ {x:270,y:280,n:'CDN',ic:'cloud',g:'gAmber',s:'#FFB547',hp:.35,hc:'#FFB547',lab:['🌐 public','pub'],tc:'#FFB547'},
+ {x:390,y:280,n:'Load balancer',ic:'lb',g:'gBlue',s:'#4C9AFF',hp:.8,hc:'#4C9AFF',lab:['🌐 public','pub'],badge:'🚦 LIMIT'},
+ {x:500,y:165,n:'Web server 1',ic:'server',g:'gBlue',s:'#4C9AFF',hp:.95,hc:'#4C9AFF',lab:['🔒 hidden','priv'],up:true},
+ {x:500,y:400,n:'Web server 2',ic:'server',g:'gRed',s:'#FF4D55',hp:.2,hc:'#FF4D55',lab:['🌐 leaked!','pub']},
+ {x:640,y:280,n:'API',ic:'gear',g:'gBlue',s:'#4C9AFF',hp:1,hc:'#4C9AFF',lab:['🔒 private','priv']},
+ {x:750,y:280,n:'Database',ic:'crown',g:'gGold',s:'#FFD166',hp:1,hc:'#FFD166',lab:['🔒 private','priv'],tc:'#FFD166',big:true},
+ {x:270,y:70,n:'Real users',ic:'users',g:'gBlue',s:'#9AA7C0',small:true,up:true}];
+const G=document.getElementById('nodes');
+N.forEach(d=>{const r=d.big?34:d.small?22:30;const g=el('g',{transform:`translate(${d.x} ${d.y})`},G);
+ el('circle',{r:r+14,fill:d.s,opacity:.18,filter:'url(#soft)'},g);
+ const ring=el('circle',{r:r+6,fill:'none',stroke:d.s,'stroke-width':1,opacity:.5},g);
+ if(d.s=='#FF4D55'||d.s=='#FFB547'){el('animate',{attributeName:'r',values:`${r+4};${r+14};${r+4}`,dur:'1.6s',repeatCount:'indefinite'},ring);el('animate',{attributeName:'opacity',values:'.7;0;.7',dur:'1.6s',repeatCount:'indefinite'},ring)}
+ el('circle',{r,fill:`url(#${d.g})`,stroke:d.s,'stroke-width':3,filter:'url(#glow)'},g);
+ const ic=el('g',{fill:'none',stroke:'#fff','stroke-width':1.8,'stroke-linejoin':'round','stroke-linecap':'round',transform:d.small?'scale(.8)':''},g);ic.innerHTML=I[d.ic];
+ const ly=d.up?-(r+14):r+22;
+ const t=el('text',{y:ly,fill:d.tc||'#E6ECF5','font-size':15,'font-weight':600},g);t.textContent=d.n;
+ if(d.hp!==undefined){const hy=d.up?-(r+32):r+30;el('rect',{x:-26,y:hy,width:52,height:5,rx:2.5,fill:'#1C2740'},g);el('rect',{x:-26,y:hy,width:52*d.hp,height:5,rx:2.5,fill:d.hc,filter:'url(#glow)'},g)}
+ if(d.lab){const by=d.up?-(r+58):r+42;const pub=d.lab[1]=='pub';el('rect',{x:-36,y:by,width:72,height:20,rx:5,fill:pub?'rgba(90,20,28,.85)':'rgba(15,60,40,.85)'},g);const bt=el('text',{y:by+14,fill:pub?'#FF9A9D':'#3DDC97','font-size':12,'font-weight':600},g);bt.textContent=d.lab[0]}
+ if(d.badge){el('rect',{x:-30,y:-r-24,width:60,height:20,rx:4,fill:'#2F6FDB',filter:'url(#glow)'},g);const bt=el('text',{y:-r-10,fill:'#fff','font-size':12,'font-weight':700},g);bt.textContent=d.badge}
+});
+// globe
+const cv=document.getElementById('globe'),ctx=cv.getContext('2d');
+const pts=[];const M=2600;for(let i=0;i<M;i++){const y=1-2*(i+.5)/M,rr=Math.sqrt(1-y*y),th=i*2.39996;pts.push([Math.cos(th)*rr,y,Math.sin(th)*rr])}
+function draw(t){const W=cv.clientWidth,H=cv.clientHeight,dpr=devicePixelRatio||1;if(cv.width!=W*dpr){cv.width=W*dpr;cv.height=H*dpr}
+ ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+ const s=Math.min(W/1000,H/560),ox=(W-1000*s)/2,oy=(H-560*s)/2;const cx=ox+440*s,cy=oy+285*s,R=265*s;
+ const at=ctx.createRadialGradient(cx,cy,R*.85,cx,cy,R*1.18);at.addColorStop(0,'rgba(80,140,255,0)');at.addColorStop(.5,'rgba(120,160,255,.10)');at.addColorStop(1,'rgba(80,140,255,0)');ctx.fillStyle=at;ctx.beginPath();ctx.arc(cx,cy,R*1.18,0,7);ctx.fill();
+ const lr=ctx.createRadialGradient(cx-R*.5,cy,0,cx-R*.5,cy,R*1.1);lr.addColorStop(0,'rgba(255,60,70,.22)');lr.addColorStop(1,'rgba(255,60,70,0)');ctx.fillStyle=lr;ctx.beginPath();ctx.arc(cx,cy,R,0,7);ctx.fill();
+ const rg=ctx.createRadialGradient(cx+R*.5,cy,0,cx+R*.5,cy,R*1.1);rg.addColorStop(0,'rgba(60,130,255,.2)');rg.addColorStop(1,'rgba(60,130,255,0)');ctx.fillStyle=rg;ctx.beginPath();ctx.arc(cx,cy,R,0,7);ctx.fill();
+ const a=t*0.00012,tilt=.35,ca=Math.cos(a),sa=Math.sin(a),ct=Math.cos(tilt),st=Math.sin(tilt);
+ for(const [x,y,z] of pts){let X=x*ca+z*sa,Z=-x*sa+z*ca;let Y=y*ct-Z*st;Z=y*st+Z*ct;if(Z<-.05)continue;
+  const px=cx+X*R,py=cy+Y*R;const m=Math.min(1,Math.max(0,(X+.35)/.7));
+  const r=Math.round(255*(1-m)+90*m),g=Math.round(80*(1-m)+150*m),b=Math.round(90*(1-m)+255*m);
+  ctx.fillStyle=`rgba(${r},${g},${b},${(.15+.55*Z).toFixed(3)})`;ctx.fillRect(px,py,1.6*s+.4,1.6*s+.4)}
+ ctx.strokeStyle='rgba(140,170,230,.25)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(cx,cy,R,0,7);ctx.stroke();
+ if(!matchMedia('(prefers-reduced-motion: reduce)').matches)requestAnimationFrame(draw)}
+requestAnimationFrame(draw);
+</script>
+</body></html>
