@@ -1,0 +1,5 @@
+pymongo>=4.8
+voyageai>=0.3
+openai>=1.40
+langsmith>=0.1.100
+python-dotenv>=1.0
