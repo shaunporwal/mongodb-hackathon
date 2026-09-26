@@ -49,6 +49,18 @@ button:disabled{opacity:.5;cursor:default}
 .chg .fld{font:11px ui-monospace,monospace;color:var(--mut);text-transform:uppercase;letter-spacing:.08em}
 .chg .was{color:#FF9A9D;font-size:12px;margin-top:1px}
 .chg .now{color:var(--green);font-size:12px}
+.tabs{display:flex;align-items:center;gap:8px}
+.tab{font:600 10px ui-monospace,monospace;padding:2px 8px;border:1px solid var(--line);border-radius:5px;background:transparent;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;cursor:pointer}
+.tab.on{color:var(--txt);border-color:var(--red)}
+.tabbody{flex:1;min-height:0;overflow:auto}
+.prow{padding:8px 12px;border-bottom:1px solid var(--line)}
+.prow .ph{display:flex;align-items:center;gap:8px;font-size:13px}
+.prow .pf{font:600 12px ui-monospace,monospace;color:var(--red)}
+.prow .pk{margin-left:auto;font-size:11px;color:var(--mut)}
+.prow .pk b{color:var(--green)}
+.prow .pcur{font-size:12px;color:var(--txt);margin-top:3px;white-space:pre-wrap;word-break:break-word}
+.prow.inactive .pf{color:var(--mut)}
+.prow .dead{font-size:11px;color:var(--amber);margin-top:2px}
 .bar{height:10px;border-radius:5px;background:linear-gradient(90deg,var(--red) 0 var(--rw,50%),#22304e var(--rw,50%) 100%)}
 .foot{padding:6px 18px 16px;color:var(--mut);font-size:12px}
 .pill{font-size:11px;padding:2px 8px;border:1px solid var(--line);border-radius:20px;color:var(--mut)}
@@ -102,8 +114,11 @@ button:disabled{opacity:.5;cursor:default}
     <div class="foot" id="chart-note">Run a few generations to see the curve climb.</div>
   </section>
 
-  <section class="panel"><h3>Harness evolution — Red rewrites its own playbook</h3>
-    <div id="gens"><div class="empty">No mutations yet. Click <b>Train Red</b>.</div></div>
+  <section class="panel"><h3 class="tabs">Harness evolution
+      <button class="tab on" id="tab-params" onclick="showTab('params')">By parameter</button>
+      <button class="tab" id="tab-gens" onclick="showTab('gens')">By version</button></h3>
+    <div class="tabbody" id="params"><div class="empty">No mutations yet. Click <b>Train Red</b>.</div></div>
+    <div class="tabbody" id="gens" hidden><div class="empty">No mutations yet. Click <b>Train Red</b>.</div></div>
   </section>
 </div>
 
@@ -220,9 +235,35 @@ function drawGens(gens){
     box.appendChild(d);
   });
 }
+// Which harness parameters can actually affect RED right now (Red gets no signals,
+// so 'signals'/'thresholds' changes are inert). Shown as a note in the UI.
+const INERT_FOR_RED={signals:1,thresholds:1};
+const FIELD_LABEL={playbook:"Playbook",signals:"Signals",thresholds:"Thresholds",memory_policy:"Memory policy",guardrails:"Guardrails"};
+function showTab(which){
+  ["params","gens"].forEach(t=>{$(t).hidden=(t!==which);$("tab-"+t).classList.toggle("on",t===which);});
+}
+function drawParams(h){
+  const box=$("params");const f=h.fields||{};const keys=Object.keys(FIELD_LABEL);
+  if(!keys.some(k=>f[k])){box.innerHTML='<div class="empty">No mutations yet. Click <b>Train Red</b>.</div>';return}
+  box.innerHTML="";
+  keys.forEach(k=>{
+    const d=f[k]||{current:null,tried:0,kept:0};
+    const row=document.createElement("div");row.className="prow"+(INERT_FOR_RED[k]?" inactive":"");
+    let hist="";(d.history||[]).slice().reverse().forEach(x=>{
+      hist+=`<div class="chg"><span class="fld">v${x.version} · ${x.kept?"kept":"rolled back"} · Red ${Math.round(x.win_rate*100)}% vs ${Math.round(x.parent_win_rate*100)}%</span>`
+        +`<div class="was">− ${fmtVal(x.before)}</div><div class="now">+ ${fmtVal(x.after)}</div></div>`;
+    });
+    row.innerHTML=`<div class="ph"><span class="pf">${FIELD_LABEL[k]}</span>`
+      +`<span class="pk">${d.tried||0} tried · <b>${d.kept||0} kept</b></span></div>`
+      +`<div class="pcur">${fmtVal(d.current)}</div>`
+      +(INERT_FOR_RED[k]?`<div class="dead">no effect on Red yet — Red receives no signals</div>`:"")
+      +hist;
+    box.appendChild(row);
+  });
+}
 async function refresh(){
   try{
-    const [st,cu,ge,he]=await Promise.all([api.get("/api/status"),api.get("/api/curve"),api.get("/api/generations"),api.get("/api/health")]);
+    const [st,cu,ge,ha,he]=await Promise.all([api.get("/api/status"),api.get("/api/curve"),api.get("/api/generations"),api.get("/api/harness"),api.get("/api/health")]);
     $("s-win").textContent=Math.round((st.win_rate||0)*100)+"%";
     $("s-level").textContent=st.current_level??1;$("s-ver").textContent=st.harness_version??0;
     $("s-gens").textContent=st.generations??0;$("s-lessons").textContent=st.states_learned??0;
@@ -230,7 +271,7 @@ async function refresh(){
     const training=st.training;$("s-train").textContent=training?"training…":"idle";$("s-train").className="pill"+(training?" live":"");
     $("b-train").disabled=training;$("b-train").textContent=training?"training…":"⚡ Train Red (5 generations)";
     const rw=Math.round((st.win_rate||0)*100);$("s-tug").textContent="Red "+rw+"%";document.documentElement.style.setProperty("--rw",rw+"%");
-    drawChart(cu.curve,cu.x_label);drawGens(ge.generations);
+    drawChart(cu.curve,cu.x_label);drawGens(ge.generations);drawParams(ha);
   }catch(e){}
 }
 async function step(){snapshot=await api.post("/api/live/step");render();}

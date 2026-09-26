@@ -193,6 +193,33 @@ def config():
     return board.board()
 
 
+@app.get("/api/harness")
+def harness_by_parameter():
+    """Per-parameter view of the learner's harness: current value of each of the 5
+    evolvable fields, plus every mutation tried on it (kept or rolled back) with the
+    eval result that decided it."""
+    from backend.store import HARNESS_FIELDS
+    versions = {h["version"]: h for h in db.harness_versions().find({"side": LEARNER}, {"_id": 0})}
+    current = store.current_version(LEARNER)
+    fields = {f: {"current": current.get(f), "tried": 0, "kept": 0, "history": []}
+              for f in HARNESS_FIELDS}
+    for v in sorted(versions):
+        h, parent = versions[v], versions.get(versions[v].get("parent"))
+        if not parent or not h.get("eval"):
+            continue
+        for f in HARNESS_FIELDS:
+            if h.get(f) != parent.get(f):
+                fields[f]["tried"] += 1
+                fields[f]["kept"] += bool(h.get("kept"))
+                fields[f]["history"].append({
+                    "version": v, "kept": h.get("kept"), "before": parent.get(f), "after": h.get(f),
+                    "summary": h.get("diff_summary"), "level": h["eval"]["level"],
+                    "win_rate": h["eval"]["win_rate"], "parent_win_rate": h["eval"]["parent_win_rate"]})
+    return {"learner": LEARNER, "current_version": current["version"],
+            "lessons": db.lessons().count_documents({"side": LEARNER}),
+            "fields": fields}
+
+
 @app.get("/api/generations")
 def generations():
     from backend.store import HARNESS_FIELDS
