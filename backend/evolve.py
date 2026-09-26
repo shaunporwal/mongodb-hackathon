@@ -17,19 +17,26 @@ from backend.runner import env_factory, play_game, seeds_for
 
 MAX_LEVEL = 5
 
-SYSTEM = """You improve the HARNESS of BLUE, an LLM defender in a turn-based SIMULATED
-network-defense game. A harness has these fields:
-- playbook: str, the strategy text Blue reads every turn
+ROLE_LINE = {
+    "blue": "You improve the HARNESS of BLUE, the LLM defender",
+    "red": "You improve the HARNESS of RED, the LLM player trying to reach the crown-jewel node",
+}
+SYSTEM_TMPL = """{role} in a turn-based SIMULATED board game. A harness has these fields:
+- playbook: str, the strategy text the player reads every turn
 - signals: list[str], signal types in priority order
-- thresholds: {signal_type: float 0..1}, weaker scored signals are hidden from Blue
-- memory_policy: {"k": int 0..8, "filter_by_level": bool, "recency_weight": float 0..1}
+- thresholds: {{signal_type: float 0..1}}, weaker scored signals are hidden
+- memory_policy: {{"k": int 0..8, "filter_by_level": bool, "recency_weight": float 0..1}}
 - guardrails: list[str]; machine-checked forms are "never <action> [<target>]" and
   "after <action_a> ..., also <action_b>" (next turn, same target); others are advisory.
-Propose exactly ONE focused mutation to ONE field that should raise Blue's win rate,
+Propose exactly ONE focused mutation to ONE field that should raise this player's win rate,
 based on the recent losses and lessons. Keep the playbook under 120 words.
 Reply with JSON only:
-{"field": "<field>", "new_value": <full new value for that field>,
- "diff_summary": "<one short plain-English sentence, e.g. 'After a credential alert: reset passwords, then isolate'>"}"""
+{{"field": "<field>", "new_value": <full new value for that field>,
+ "diff_summary": "<one short plain-English sentence>"}}"""
+
+
+def evolve_system(learner: str = "blue") -> str:
+    return SYSTEM_TMPL.format(role=ROLE_LINE.get(learner, ROLE_LINE["blue"]))
 
 
 def _context(level: int, learner: str = "blue") -> str:
@@ -80,7 +87,7 @@ def propose(parent: dict, level: int, learner: str = "blue") -> tuple[dict, str]
     user = f"CURRENT HARNESS (v{parent['version']}):\n{json.dumps(current, indent=1)}\n\n{_context(level, learner)}"
     err = ""
     for _ in range(2):
-        out, _usage = llm.chat_json(SYSTEM, user + err, kind="evolve", max_tokens=700, temperature=0.7)
+        out, _usage = llm.chat_json(evolve_system(learner), user + err, kind="evolve", max_tokens=700, temperature=0.7)
         try:
             field = out["field"]
             return {field: _valid(field, out["new_value"], parent)}, str(out["diff_summary"])[:200]
