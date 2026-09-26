@@ -51,14 +51,14 @@ One small, strict token set, so every screen reads as one product.
 
 **Color is meaning, never decoration.**
 
-| Token | Value | Stands for |
-|---|---|---|
-| Red | `#FF4D55` | the attacker, and anything it controls |
-| Blue | `#4C9AFF` | the defender, and anything still safe |
-| Amber | `#FFB547` | under attack, not yet lost |
-| Gold | `#FFD166` | the crown jewel (the database) |
-| Green | `#3DDC97` | **memory** — recalled lessons, the thing that makes it learn |
-| Ground | `#070B14` | near-black board, so the neon reads |
+| Swatch | Token | Value | Stands for |
+|:---:|---|---|---|
+| 🟥 | Red | `#FF4D55` | 🎯 the attacker, and anything it controls |
+| 🟦 | Blue | `#4C9AFF` | 🛡️ the defender, and anything still safe |
+| 🟧 | Amber | `#FFB547` | ⚠️ under attack, not yet lost |
+| 🟨 | Gold | `#FFD166` | 👑 the crown jewel (the database) |
+| 🟩 | Green | `#3DDC97` | 📝 **memory** — recalled lessons, the thing that makes it learn |
+| ⬛ | Ground | `#070B14` | 🌑 near-black board, so the neon reads |
 
 The most important choice: **green is reserved for memory.** Recall notes, the
 lesson deck, the match score, the "lessons written" counter — all green, and
