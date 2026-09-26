@@ -1,0 +1,27 @@
+flowchart LR
+  R["🔴 <b>Red can target ANY node</b><br/>no fixed order — one rule:<br/><b>it must be reachable</b>"]
+  R --> Q{"Does the node have an<br/>address Red can find?"}
+  Q -- "🌐 yes: CDN, load balancer,<br/>or a <b>leaked</b> server address" --> D["⚡ <b>Direct flood</b><br/>hits that node now"]
+  Q -- "🔒 no: private API, Database" --> I["🔁 <b>Only indirect</b><br/>send costly requests through<br/>the front door that pile work<br/>onto the Database"]
+  subgraph RM["New Red moves"]
+    direction TB
+    r1["🔎 <b>Recon</b> — hunt for a hidden<br/>server's real address"]
+    r2["🧾 <b>Expensive requests</b> — searches<br/>the cache can't answer"]
+  end
+  subgraph BM["New Blue moves"]
+    direction TB
+    b1["🙈 <b>Hide origin</b> — change the leaked<br/>address, only accept CDN traffic"]
+    b2["🔒 <b>Close public access</b> — remove<br/>'open to everyone' (0.0.0.0/0!)"]
+    b3["🗄️ <b>Cache / queue</b> — shield the DB<br/>from repeated costly requests"]
+  end
+  D --> BM
+  I --> BM
+  r1 -.-> Q
+  LEARN["📈 What Blue learns over 1000s of games:<br/><b>which nodes to hide, not just how to block floods</b>"]
+  BM --> LEARN
+  classDef red fill:#FDE8E8,stroke:#C0392B,color:#1B2733
+  classDef blue fill:#E8F1FB,stroke:#3B6EA8,color:#1B2733
+  classDef star fill:#FFF4E0,stroke:#C98A1B,color:#1B2733,stroke-width:3px
+  class R,D,I,r1,r2 red
+  class b1,b2,b3 blue
+  class LEARN star

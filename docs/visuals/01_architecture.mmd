@@ -1,0 +1,28 @@
+flowchart LR
+  subgraph ENGINE["⚙️ <b>Game engine</b> — plain code, no AI, runs 1000s of games"]
+    direction TB
+    MAP["Network map<br/>Internet → CDN → Load balancer<br/>→ Web servers → API → 👑 Database"]
+    TURN["Turn loop ×20<br/>traffic math: requests/sec,<br/>capacity, legit users served"]
+  end
+  subgraph AI["🧠 <b>AI coaches</b> — the harness (OpenRouter)"]
+    direction TB
+    RC["🔴 Red coach<br/>rewrites the <b>attack plan</b><br/>between games"]
+    BC["🔵 Blue coach<br/>rewrites the <b>defense playbook</b><br/>between games"]
+  end
+  M[("🍃 <b>MongoDB Atlas</b><br/>games · turns · playbooks (versioned)<br/>attack_patterns + vectors")]
+  UI["🎮 <b>Game UI</b> (v0 → Vercel)<br/>tower-defense style map + log<br/>+ win-rate chart"]
+  ENGINE -- "every turn saved" --> M
+  M -- "after each game:<br/>results + similar past<br/>attacks (Vector Search)" --> AI
+  AI -- "new playbook v+1" --> M
+  M -- "playbook loaded<br/>for next game" --> ENGINE
+  M -. "poll every 1–2s" .-> UI
+  KEY["💡 The AI doesn't play every turn — it <b>coaches between games</b>.<br/>That's the self-improving harness (Statement One),<br/>and it lets you run 100x speed cheaply."]
+  AI --- KEY
+  classDef nb fill:#E6F4EA,stroke:#00684A,color:#1B2733,stroke-width:3px
+  classDef red fill:#FDE8E8,stroke:#C0392B,color:#1B2733
+  classDef blue fill:#E8F1FB,stroke:#3B6EA8,color:#1B2733
+  classDef star fill:#FFF4E0,stroke:#C98A1B,color:#1B2733,stroke-width:2px
+  class M nb
+  class RC red
+  class BC blue
+  class KEY,UI star

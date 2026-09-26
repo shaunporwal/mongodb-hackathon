@@ -1,0 +1,31 @@
+flowchart TB
+  subgraph RED["🔴 Red picks ONE move (simulated numbers only)"]
+    direction LR
+    R1["🌊 <b>Volume flood</b><br/>huge wave of junk traffic"]
+    R2["🐢 <b>Slow drip</b><br/>few requests that<br/>hog connections"]
+    R3["🎭 <b>Fake users</b><br/>floods that look like<br/>real customers"]
+    R4["💓 <b>Pulse</b><br/>on/off bursts to<br/>dodge detection"]
+    R5["🤖 <b>Grow botnet</b><br/>more attackers<br/>next turn"]
+  end
+  subgraph BLUE["🔵 Blue picks ONE move (may not have spotted Red yet)"]
+    direction LR
+    B0["🔎 <b>Inspect traffic</b><br/>reveals attack type"]
+    B1["🚦 <b>Rate limit</b><br/>cap requests per source"]
+    B2["🧱 <b>Filter rule</b><br/>block a traffic pattern<br/>⚠️ may block real users"]
+    B3["☁️ <b>Absorb at CDN</b><br/>soak up volume floods"]
+    B4["📈 <b>Scale up servers</b><br/>more capacity 💰 costs"]
+    B5["🕳️ <b>Blackhole</b><br/>drop everything to a node<br/>⚠️ node goes offline"]
+  end
+  RED --> CALC["🧮 <b>Engine scores the turn</b><br/>traffic vs capacity per node →<br/>node colors · uptime % · real users served · cost"]
+  BLUE --> CALC
+  CALC --> WIN{"End of 20 turns"}
+  WIN -- "uptime ≥ 95% and<br/>👑 DB never down" --> BW["🔵 Blue wins"]
+  WIN -- "site down 3 turns<br/>in a row" --> RW["🔴 Red wins"]
+  TRADE["⚖️ The interesting part: blocking too hard also hurts real users.<br/>Watching Blue <b>learn that balance</b> over 1000s of games is the wow."]
+  CALC --- TRADE
+  classDef red fill:#FDE8E8,stroke:#C0392B,color:#1B2733
+  classDef blue fill:#E8F1FB,stroke:#3B6EA8,color:#1B2733
+  classDef star fill:#FFF4E0,stroke:#C98A1B,color:#1B2733,stroke-width:2px
+  class R1,R2,R3,R4,R5,RW red
+  class B0,B1,B2,B3,B4,B5,BW blue
+  class TRADE star
