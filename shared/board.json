@@ -14,6 +14,14 @@
     ["internet","router"],["router","laptopA"],["router","laptopB"],["laptopA","laptopB"],
     ["laptopA","server"],["laptopB","printer"],["server","database"],["printer","database"]
   ],
+  "vulnerabilities": {
+    "router":   {"type": "default-config",    "mitre": "T1190", "exploit_prob": 0.6, "note": "ships with a default admin login"},
+    "laptopA":  {"type": "weak-credentials",   "mitre": "T1110", "exploit_prob": 0.6, "note": "reused password, no MFA"},
+    "laptopB":  {"type": "phishable-user",     "mitre": "T1566", "exploit_prob": 0.6, "note": "user clicks attachments"},
+    "server":   {"type": "unpatched-service",  "mitre": "T1190", "exploit_prob": 0.6, "note": "known flaw, not yet patched"},
+    "printer":  {"type": "default-config",     "mitre": "T1190", "exploit_prob": 0.6, "note": "exposed admin panel"},
+    "database": {"type": "over-trusted-access","mitre": "T1078", "exploit_prob": 0.5, "note": "trusts any host on its subnet"}
+  },
   "colors": {"safe": "#4C9AFF", "under_attack": "#FFB547", "taken": "#FF4D55", "offline": "#5B6780"},
   "state_alias": {"blue": "safe", "amber": "under_attack", "red": "taken", "gray": "offline"},
   "mitre": {"phishing": "T1566", "password_guess": "T1110", "exploit": "T1190",

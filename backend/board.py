@@ -35,3 +35,5 @@ def to_engine(nid):
     return ID_MAP_REV.get(nid, nid) if nid else nid
 
 TO_ENGINE = ID_MAP_REV  # alias
+
+VULNS = board().get("vulnerabilities", {})

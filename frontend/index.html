@@ -35,6 +35,16 @@ button:disabled{opacity:.5;cursor:default}
 .gen .badge.kept{background:#14351f;color:var(--green)}
 .gen .diff{font-size:12px;margin-top:3px}.gen .ev{font-size:11px;color:var(--mut);margin-top:2px}
 .empty{padding:14px;color:var(--mut);font-size:12px}
+.vulns{padding:6px 12px 10px}
+.vrow{display:flex;gap:8px;align-items:center;margin-top:7px;font-size:13px}
+.vrow b{min-width:80px}
+.vtype{color:var(--amber)}.vmitre{font:11px ui-monospace,monospace;color:var(--mut)}
+.vprob{margin-left:auto;color:var(--red);font-weight:700}
+.vnote{font-size:11px;color:var(--mut);margin:1px 0 0 88px}
+.chg{margin-top:5px;border-left:2px solid var(--line);padding-left:8px}
+.chg .fld{font:11px ui-monospace,monospace;color:var(--mut);text-transform:uppercase;letter-spacing:.08em}
+.chg .was{color:#FF9A9D;font-size:12px;margin-top:1px}
+.chg .now{color:var(--green);font-size:12px}
 .bar{height:10px;border-radius:5px;background:linear-gradient(90deg,var(--red) 0 var(--rw,50%),#22304e var(--rw,50%) 100%)}
 .foot{padding:6px 18px 16px;color:var(--mut);font-size:12px}
 .pill{font-size:11px;padding:2px 8px;border:1px solid var(--line);border-radius:20px;color:var(--mut)}
@@ -78,6 +88,9 @@ button:disabled{opacity:.5;cursor:default}
     <section class="panel"><h3>Play-by-play — newest first</h3>
       <div class="log" id="log"><div class="empty">Press <b>Play</b> or <b>Train Red</b> to begin.</div></div>
     </section>
+    <section class="panel"><h3>Vulnerabilities per node — 🔒 hidden · 🎯 found · 🔓 exploited</h3>
+      <div id="vulns" class="vulns"><div class="empty">—</div></div>
+    </section>
   </aside>
 
   <section class="panel chart"><h3>Red win rate by harness version — the improvement curve</h3>
@@ -100,13 +113,22 @@ const api={
 };
 // Board layout, labels and colors come from the backend (shared/board.json) — single
 // source of truth, no literals duplicated here. Filled by loadConfig().
-let POS={}, LABEL={}, COLOR={}, DEFAULT_EDGES=[];
+let POS={}, LABEL={}, COLOR={}, DEFAULT_EDGES=[], CONFIG={};
 async function loadConfig(){
-  const c=await api.get("/api/config");
+  const c=await api.get("/api/config");CONFIG=c;
   c.nodes.forEach(n=>{POS[n.id]=n.pos;LABEL[n.id]=n.label;});
   DEFAULT_EDGES=c.edges;
   COLOR={...c.colors};                    // safe/under_attack/taken/offline
   for(const k in c.state_alias)COLOR[k]=c.colors[c.state_alias[k]];  // blue/amber/red/gray aliases
+  drawVulns();
+}
+function drawVulns(){
+  const box=$("vulns");if(!box)return;const v=CONFIG.vulnerabilities||{};
+  box.innerHTML=Object.keys(v).map(id=>`<div class="vrow"><b>${LABEL[id]||id}</b>`
+    +`<span class="vtype">${v[id].type}</span>`
+    +`<span class="vmitre">${v[id].mitre}</span>`
+    +`<span class="vprob">${Math.round(v[id].exploit_prob*100)}%</span></div>`
+    +`<div class="vnote">${v[id].note}</div>`).join("")||'<div class="empty">—</div>';
 }
 
 let snapshot=null, playing=false, timer=null;
@@ -124,6 +146,14 @@ function drawMap(){
     g.appendChild(el("circle",{r:n.crown?18:14,fill:c,stroke:"#0b1220","stroke-width":2}));
     const t=el("text",{y:n.crown?-26:-22,fill:"#E6ECF5","font-size":12,"text-anchor":"middle"});
     t.textContent=(n.crown?"👑 ":"")+(LABEL[n.id]||n.id);g.appendChild(t);
+    // vulnerability marker: 🔓 exploited, 🎯 discovered-not-yet-taken, 🔒 hidden flaw
+    const vuln=n.vuln||(CONFIG.vulnerabilities&&CONFIG.vulnerabilities[n.id]);
+    if(vuln){
+      const icon=n.exploited?"🔓":n.flaw_discovered?"🎯":"🔒";
+      const vt=el("text",{y:n.crown?36:30,"font-size":11,"text-anchor":"middle",fill:n.exploited?"#FF4D55":n.flaw_discovered?"#FFB547":"#8391AB"});
+      vt.textContent=icon+" "+vuln.type;g.appendChild(vt);
+      const tip=el("title");tip.textContent=`${vuln.type} (${vuln.mitre}) — exploit odds ${Math.round(vuln.exploit_prob*100)}%\n${vuln.note}`;g.appendChild(tip);
+    }
     svg.appendChild(g);
   });
 }
@@ -159,16 +189,30 @@ function drawChart(curve,xlabel){
   svg.appendChild(Object.assign(el("text",{x:W-pad,y:Y(last.win_rate)-6,fill:"#E6ECF5","font-size":13,"font-weight":700,"text-anchor":"end"}),{textContent:Math.round(last.win_rate*100)+"%"}));
   $("chart-note").textContent="x-axis: "+(xlabel||"harness version")+" · dots: red=kept, gray=rolled back";
 }
+function fmtVal(v){
+  if(Array.isArray(v))return v.length?v.join("; "):"(none)";
+  if(v&&typeof v=="object")return JSON.stringify(v);
+  return String(v);
+}
 function drawGens(gens){
   const box=$("gens");
   if(!gens||!gens.length){box.innerHTML='<div class="empty">No mutations yet. Click <b>Train Red</b>.</div>';return}
   box.innerHTML="";
   gens.forEach(g=>{
     const d=document.createElement("div");d.className="gen"+(g.kept?" kept":"");
-    const ev=g.eval?`L${g.eval.level} · win ${Math.round(g.eval.win_rate*100)}% vs parent ${Math.round(g.eval.parent_win_rate*100)}% (${g.eval.games} games)`:"";
+    const ev=g.eval?`L${g.eval.level} · Red win ${Math.round(g.eval.win_rate*100)}% vs previous ${Math.round(g.eval.parent_win_rate*100)}% over ${g.eval.games} games`:"";
+    // the actual harness change, field by field
+    let changes="";
+    (g.changes||[]).forEach(c=>{
+      changes+=`<div class="chg"><span class="fld">${c.field}</span>`
+        +`<div class="was">− ${fmtVal(c.before)}</div>`
+        +`<div class="now">+ ${fmtVal(c.after)}</div></div>`;
+    });
+    if(!changes)changes=`<div class="diff">${g.diff_summary||""}</div>`;
     d.innerHTML=`<div class="h"><b>v${g.version}</b><span style="color:var(--mut)">from v${g.parent}</span>`
       +`<span class="badge ${g.kept?"kept":""}">${g.kept?"KEPT":"ROLLED BACK"}</span></div>`
-      +`<div class="diff">${g.diff_summary||""}</div><div class="ev">${ev}</div>`;
+      +`<div class="diff" style="font-style:italic">“${g.diff_summary||""}”</div>`
+      +changes+`<div class="ev">${ev} — ${g.kept?"beat the previous version, so it was adopted":"did not beat the previous version, so it was discarded"}</div>`;
     box.appendChild(d);
   });
 }

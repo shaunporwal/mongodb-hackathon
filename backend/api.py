@@ -47,11 +47,20 @@ class Replay:
 
     def snapshot(self) -> dict:
         net = db.networks().find_one({"_id": db.NETWORK_ID}) or {"nodes": [], "edges": []}
+        from backend.board import VULNS
         shown = self.events[:self.cursor]
         board = shown[-1]["node_states"] if shown else {}
+        # Which nodes has Red discovered the flaw on? (successful probe up to this point)
+        discovered = {e["target"] for e in shown
+                      if e.get("action") == "probe" and e.get("success")}
+        exploited = {e["target"] for e in shown
+                     if e.get("side") == "red" and e.get("success") and board.get(e["target"]) == "red"}
         nodes = [{"id": n["id"], "kind": n["type"], "crown": n["crown"],
                   "owner": "red" if board.get(n["id"]) == "red" else "blue",
                   "state": COLOR_TO_STATE.get(board.get(n["id"], "gray" if n["id"] == "internet" else "blue")),
+                  "vuln": VULNS.get(n["id"]),
+                  "flaw_discovered": n["id"] in discovered,
+                  "exploited": n["id"] in exploited,
                   "patched": False, "known": False} for n in net["nodes"]]
         log = [{"turn": e["turn"], "side": e["side"], "action": e["action"], "text": e["text"],
                 "target": e["target"], "source": e.get("from"), "success": e["success"],
@@ -186,10 +195,25 @@ def config():
 
 @app.get("/api/generations")
 def generations():
-    return {"generations": list(db.harness_versions().find(
-        {"side": LEARNER, "eval": {"$ne": None}},
-        {"_id": 0, "version": 1, "parent": 1, "diff_summary": 1,
-         "eval": 1, "kept": 1, "level_unlocked": 1}).sort("version", -1).limit(20))}
+    from backend.store import HARNESS_FIELDS
+    gens = list(db.harness_versions().find(
+        {"side": LEARNER, "eval": {"$ne": None}}).sort("version", -1).limit(20))
+    parents = {h["version"]: h for h in db.harness_versions().find({"side": LEARNER})}
+    out = []
+    for h in gens:
+        parent = parents.get(h.get("parent"))
+        # Field-level diff: what actually changed from parent -> this version.
+        changes = []
+        if parent:
+            for f in HARNESS_FIELDS:
+                before, after = parent.get(f), h.get(f)
+                if before != after:
+                    changes.append({"field": f, "before": before, "after": after})
+        out.append({"version": h["version"], "parent": h.get("parent"),
+                    "diff_summary": h.get("diff_summary"), "eval": h.get("eval"),
+                    "kept": h.get("kept"), "level_unlocked": h.get("level_unlocked"),
+                    "changes": changes})
+    return {"generations": out}
 
 
 # ---- serve the frontend ----

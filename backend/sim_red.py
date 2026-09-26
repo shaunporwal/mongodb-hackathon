@@ -20,7 +20,7 @@ from engine.actions import BlueAction, RedAction  # noqa: E402
 from engine.game import Game, GameConfig  # noqa: E402
 from engine.state import Owner  # noqa: E402
 
-from backend.board import (LABEL, MAX_TURNS, MITRE, TO_ENGINE, WIN_CONDITION,  # noqa: E402,F401
+from backend.board import (LABEL, MAX_TURNS, MITRE, TO_ENGINE, VULNS, WIN_CONDITION,  # noqa: E402,F401
                            ours)
 from backend.vuln import DEFENSE_MITIGATION, Flaw  # noqa: E402
 
@@ -49,9 +49,11 @@ class RedLearnerEnv:
         self.game = Game(GameConfig(max_turns=MAX_TURNS, seed=seed))
         self.rng = random.Random(seed)
         self.mitigation = DEFENSE_MITIGATION.get(level, 0.0)
-        # One abstract flaw per non-edge internal node; discovery is hidden until probed.
-        self.flaws = {n.id: Flaw(prob=0.6, discovered=False)
-                      for n in self.game.net.nodes.values() if n.kind not in ("internet",)}
+        # One abstract flaw per internal node, defined in shared/board.json (single source
+        # of truth). Discovery is hidden until Red probes the node.
+        self.flaws = {n.id: Flaw(prob=VULNS.get(ours(n.id), {}).get("exploit_prob", 0.6),
+                                 discovered=False)
+                      for n in self.game.net.nodes.values() if n.kind != "internet"}
         self._first_foothold = None   # time-to-discovery proxy: first node Red holds
         self._first_crown = None      # time-to-exploitation: first turn Red holds the crown
         self._discovered_turn = None  # first turn a probe reveals any flaw
