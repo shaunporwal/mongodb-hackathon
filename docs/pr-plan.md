@@ -6,8 +6,8 @@ Read [CLAUDE.md](../CLAUDE.md) first: it has the full project brief, the agreed 
 ## TL;DR
 
 - **The whole Blue self-improvement loop is built and was tested end to end, but only against a stub world where Red does nothing.** The loop covers the adapter, runner, LLM harness, guardrails, reflection, evolve (keep or roll back), curriculum and compare.
-- **The one missing piece is the simulator (`backend/sim.py`)**, meaning the network, game rules and scripted Red levels 1–5. Everything else is waiting on it.
-- **A teammate's engine already exists** on the `red-vs-blue` branch (`red-vs-blue/engine/`). Wrapping it in our Env interface is probably the fastest way to get `sim.py`.
+- **UPDATE (later the same day): `backend/sim.py` now exists.** It wraps the teammate's engine, copied from `origin/red-vs-blue` into `red-vs-blue/engine`, `red-vs-blue/agents` and `red-vs-blue/tests` at the same paths so a merge stays clean. Checkpoint A passed: real games and events are in Atlas.
+- **The remaining sim gap is Red levels.** The engine has ONE scripted Red (`red-vs-blue/agents/red.py`), so `level` 1–5 is recorded but Red plays the same at every level. Random Blue wins about 58% at every level. The curriculum can't show a climb until levels 2–5 exist in the engine.
 - **This branch can't be opened as a PR against `main` yet.** It has no common history with `origin/main` and needs a rebase first (step 1 below).
 
 ## Current status
@@ -57,7 +57,12 @@ gh pr create --base main --head backend-foundation
 ```
 Only `README.md` exists on main, so expect no conflicts. Confirm with the user before force-pushing.
 
-### 2. `backend/sim.py`: the blocker
+### 2. `backend/sim.py`: done as a wrapper; Red levels still needed
+**Status:** done. `backend/sim.py` translates the teammate engine to our Env interface. It maps `laptop_a`→`laptopA`, maps actions (`scan`, `patch`, `firewall_block`, `reset_creds`, `isolate`, `restore`), adds MITRE labels, and adds a noisy signal feed (60% chance to see activity on a node, 5% false alarms). Run `python -m backend.sim` for a smoke test. The engine has no `laptopA-laptopB` edge and only 6 Blue actions, a subset of the brief's 14.
+
+**Left:** add Red levels 2–5 in the engine, e.g. `ScriptedRed(seed, level)`, in coordination with the teammate, then pass `level` through in `EngineEnv.__init__`. Engine quirks worth raising with the teammate: Red sometimes targets `internet` itself ("Guessed passwords on Internet"), and failed initial-access moves log `from: internet`.
+
+The original notes follow for reference.
 It must export `make_env(level, seed)`, returning an object with this interface (full contract in [backend/adapter.py](../backend/adapter.py)):
 `network`, `red_step(turn)`, `observe(turn)`, `legal_actions()`, `blue_act(turn, action, target)`, `result(turn)`, `metrics()`.
 
