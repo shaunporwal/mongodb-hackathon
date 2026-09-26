@@ -9,6 +9,12 @@ Read [CLAUDE.md](../CLAUDE.md) first: it has the full project brief, the agreed 
 
 **Hard line (keep in the submission):** the learner only ever emits one of the fixed symbolic actions against fake nodes. No shell commands, no real payloads, no CVE-specific code. That's what keeps it a game and not an offensive tool.
 
+**STATUS UPDATE (2026-09-26 evening): the Red learner is BUILT and WORKING.**
+- `backend/sim_red.py` — RED is the LLM learner; BLUE is a scripted defender at levels 1–5. Reuses the engine's existing mechanics, adds `vuln.Flaw` discovery and Red-centric metrics.
+- Verified end to end: random Red shows a difficulty gradient (17/40 wins at defense L1 → 6/40 at L5); an **LLM Red won at defense L2 in 10 turns** and reflection wrote 3 concrete improvement lessons; metrics (`time_to_discovery/exploitation`, `vulns_reached`, `wasted_actions`) persist to the game doc.
+- Run it: `python -m backend.runner --env sim_red --learner red --level 2 --blue llm --reflect -v`, and `python -m backend.evolve --env sim_red --learner red --generations 5 --eval-games 4`.
+- **The `RED_*` prompts in `backend/prompts.py` are minimal MECHANICAL stubs** (no exploitation strategy) so the loop runs. **GLM 5.3's job is now to STRENGTHEN `RED_PLAYBOOK_V0` / `RED_SYSTEM` with real symbolic strategy** and to set `MOVE_MODEL` to GLM's OpenRouter slug — not to build from scratch.
+
 **What splits across who builds it:**
 - **Reusable as-is (the whole harness machinery):** `db.py`, `llm.py`, `memory.py`, `store.py`, `harness.py`, `reflect.py`, `evolve.py`, `runner.py`, `compare.py`, `api.py`, `web/`. The loop is now **side-agnostic** (done this session).
 - **Side-agnostic refactor — DONE:** every piece is parameterized by learner side.
