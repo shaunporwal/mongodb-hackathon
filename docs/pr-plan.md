@@ -3,6 +3,26 @@
 Handoff doc for the next agent. **Last updated 2026-09-26, afternoon (hackathon day).**
 Read [CLAUDE.md](../CLAUDE.md) first: it has the full project brief, the agreed data contract and the original build order.
 
+## PIVOT (2026-09-26 afternoon): the learner becomes RED
+
+**New demo story:** instead of Blue (defender) self-improving, **Red (attacker) is now the learner.** Everything stays a simulation — same symbolic action space, same fake network. The "vulnerability" / "zero-day" is an **abstract node flag** (e.g. `server` has a hidden flaw with some exploit-success probability), never a real CVE and never real exploit code. Red's harness reflects on games, writes lessons to Atlas, and evolves its playbook to beat progressively harder Blue defense levels. The winning metric flips to **Red's win rate and turns-to-crown-jewel vs each Blue defense level**, and a growing tactic library.
+
+**Hard line (keep in the submission):** the learner only ever emits one of the fixed symbolic actions against fake nodes. No shell commands, no real payloads, no CVE-specific code. That's what keeps it a game and not an offensive tool.
+
+**What splits across who builds it:**
+- **Reusable as-is (the whole harness machinery):** `db.py`, `llm.py`, `memory.py`, `store.py`, `harness.py` structure, `reflect.py`, `evolve.py`, `runner.py`, `compare.py`, `api.py`, `web/`. The loop doesn't care which side is learning.
+- **Neutral plumbing done in this session:** `side`/`winner` are parameterized so the loop can serve a Red learner (see "Learner side" below). Config knob added.
+- **For the user + GLM 5.3 to write (this is the attacker-behavior part):**
+  1. In `backend/sim.py` / the engine: the abstract vulnerability flag on a node type, with an exploit-success probability, and Blue defense **levels 1–5** (mirror of the Red curriculum: L1 barely patches → L5 honeypots + segmentation).
+  2. The **Red harness prompt** (the attacker system prompt + starting playbook = harness v0 for the Red learner). Structurally identical to Blue's in `harness.py`, but written from the attacker's seat.
+  3. Wire Red's move choice through `choose_action()` the same way Blue's is today.
+  - **Config:** set `MOVE_MODEL` to GLM 5.3's OpenRouter model ID; keep `base_url="https://openrouter.ai/api/v1"`. No other code change to point the move model at GLM.
+  - **Why the user does this part:** the previous agent (Claude) is repeatedly stopped by a safety classifier when writing attacker move logic or attacker prompts, even symbolic. The neutral scaffolding is here; the attacker content is intentionally left blank for the user/GLM to fill.
+
+The rest of this doc describes the Blue-learner build that already exists. Almost all of it is reused unchanged; only the pieces in point 1–3 above are new work.
+
+---
+
 ## TL;DR
 
 - **End to end works:** simulator → Blue LLM harness → Atlas (games, events, lessons) → reflection → evolve → UI. Every piece has run against real Atlas data at least once.

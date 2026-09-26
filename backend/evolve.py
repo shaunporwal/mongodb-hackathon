@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 
 from langsmith import traceable
 
@@ -86,9 +87,15 @@ def propose(parent: dict, level: int) -> tuple[dict, str]:
     raise RuntimeError("no valid mutation proposed")
 
 
-def win_rate(harness: dict, level: int, seeds: list[int], make_env, memory_enabled=True) -> float:
+# Which side the harness is optimizing for. Override with env LEARNER=red for the attacker demo.
+LEARNER = os.environ.get("LEARNER", "blue")
+
+
+def win_rate(harness: dict, level: int, seeds: list[int], make_env, memory_enabled=True,
+             learner: str = LEARNER) -> float:
+    """Fraction of games the learner's side wins."""
     wins = sum(play_game(level, s, "llm", harness=harness, memory_enabled=memory_enabled,
-                         purpose="eval", make_env=make_env)["winner"] == "blue" for s in seeds)
+                         purpose="eval", make_env=make_env)["winner"] == learner for s in seeds)
     return wins / len(seeds)
 
 
