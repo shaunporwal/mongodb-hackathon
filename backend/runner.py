@@ -26,7 +26,10 @@ def now():
 
 
 def env_factory(name: str = "auto"):
-    """'sim' -> backend.sim.make_env, 'stub' -> backend.stub_env.make_env, 'auto' -> sim if present."""
+    """'sim' -> Blue-learner env, 'sim_red' -> Red-learner env, 'stub' -> content-free,
+    'auto' -> sim if present."""
+    if name == "sim_red":
+        return importlib.import_module("backend.sim_red").make_env
     if name in ("sim", "auto"):
         try:
             return importlib.import_module("backend.sim").make_env
@@ -72,16 +75,21 @@ def play_game(level: int, seed: int, blue_mode: str = "random", harness: dict | 
         if verbose:
             print(f"  T{ev['turn']:>2} {ev['side']:<4} {ev['text']}")
 
+    # The learner is one side; the scripted opponent is the other.
+    opponent = "blue" if learner == "red" else "red"
+    opponent_step = getattr(env, "opponent_step", None) or env.red_step
+
     result, turn = None, 0
     for turn in range(1, MAX_TURNS + 1):
         adapter.turn = turn
-        red = env.red_step(turn)
-        write({**base, "turn": turn, "side": "red", "harness_version": None,
-               "action": red.get("action"), "category": red.get("category", "attack"),
-               "mitre": red.get("mitre"), "from": red.get("from"), "target": red.get("target"),
-               "success": bool(red.get("success")), "detected": bool(red.get("detected")),
-               "signals_seen": [], "recalled": [], "reason": None, "guardrail_blocked": None,
-               "outcome": None, "text": red.get("text", ""), "node_states": red.get("node_states", {})})
+        opp = opponent_step(turn)
+        write({**base, "turn": turn, "side": opponent, "harness_version": None,
+               "action": opp.get("action"), "category": opp.get("category", "attack"),
+               "mitre": opp.get("mitre"), "from": opp.get("from"), "target": opp.get("target"),
+               "success": bool(opp.get("success")), "detected": bool(opp.get("detected")),
+               "signals_seen": [], "recalled": [], "reason": opp.get("reason"),
+               "guardrail_blocked": None, "outcome": opp.get("outcome"),
+               "text": opp.get("text", ""), "node_states": opp.get("node_states", {})})
         result = env.result(turn)
         if result:
             break
@@ -95,10 +103,11 @@ def play_game(level: int, seed: int, blue_mode: str = "random", harness: dict | 
         game["tokens_out"] += choice["tokens_out"]
         res = adapter.act(choice["action"], choice["target"])
         history.append({"action": choice["action"], "target": choice["target"]})
-        write({**base, "turn": turn, "side": "blue", "harness_version": harness["version"],
-               "action": choice["action"], "category": res.get("category"), "mitre": None,
-               "from": None, "target": choice["target"], "success": bool(res.get("success")),
-               "detected": None, "signals_seen": choice["signals_seen"],
+        write({**base, "turn": turn, "side": learner, "harness_version": harness["version"],
+               "action": choice["action"], "category": res.get("category"),
+               "mitre": res.get("mitre"), "from": res.get("from"), "target": choice["target"],
+               "success": bool(res.get("success")), "detected": res.get("detected"),
+               "signals_seen": choice["signals_seen"],
                "recalled": choice["recalled"], "reason": choice["reason"],
                "guardrail_blocked": choice["guardrail_blocked"], "outcome": res.get("outcome"),
                "text": res.get("text", ""), "node_states": res.get("node_states", {})})
@@ -136,8 +145,9 @@ def main():
     ap.add_argument("--no-memory", action="store_true")
     ap.add_argument("--reflect", action="store_true")
     ap.add_argument("--seed-offset", type=int, default=500)
-    ap.add_argument("--env", choices=["auto", "sim", "stub"], default="auto")
-    ap.add_argument("--demo", action="store_true", help="seed random-Blue demo games at levels 1-5")
+    ap.add_argument("--env", choices=["auto", "sim", "sim_red", "stub"], default="auto")
+    ap.add_argument("--learner", choices=["blue", "red"], default="blue")
+    ap.add_argument("--demo", action="store_true", help="seed random demo games at levels 1-5")
     ap.add_argument("--show-prompt", action="store_true")
     ap.add_argument("-v", "--verbose", action="store_true")
     a = ap.parse_args()
@@ -150,12 +160,13 @@ def main():
         wins = 0
         for seed in seeds_for(level, n, a.seed_offset):
             g = play_game(level, seed, mode, memory_enabled=not a.no_memory, purpose=purpose,
-                          do_reflect=a.reflect, make_env=make_env, verbose=a.verbose)
-            wins += g["winner"] == "blue"
+                          do_reflect=a.reflect, make_env=make_env, verbose=a.verbose,
+                          learner=a.learner)
+            wins += g["winner"] == a.learner
             print(f"{g['_id']} L{level} seed={seed} winner={g['winner']} ({g['win_condition']}) "
                   f"turns={g['turns']} tokens={g['tokens_in']}/{g['tokens_out']} "
                   f"lessons={g['lessons_written']}")
-        print(f"level {level}: blue win rate {wins}/{n}")
+        print(f"level {level}: {a.learner} win rate {wins}/{n}")
         if a.show_prompt and g.get("_sample_prompt"):
             p = g["_sample_prompt"]
             print("\n--- SYSTEM ---\n" + p["system"] + "\n--- USER ---\n" + p["user"])

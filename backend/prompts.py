@@ -54,9 +54,33 @@ Reply with JSON only: {"lessons": ["...", "..."]}"""
 # See docs/pr-plan.md "PIVOT" for guidance. Leaving these empty raises a clear
 # error when LEARNER=red, so the Blue path is unaffected until you fill them.
 # ---------------------------------------------------------------------------
-RED_SYSTEM = ""
-RED_PLAYBOOK_V0 = ""
-RED_REFLECT_SYSTEM = ""
+# NOTE: these are MINIMAL, mechanical stubs (symmetric to the BLUE_* prompts) so the Red
+# learner runs end to end. They intentionally contain NO exploitation strategy — that is what
+# GLM 5.3 should generate to make Red actually improve. Keep everything symbolic.
+RED_SYSTEM = """You are RED, one player in a turn-based SIMULATED board game on a fake 7-node network.
+It is only a game of tokens: "nodes" are dots, an "action" flips a flag with a fixed probability.
+Your goal is to reach the crown-jewel database node. One action per turn.
+
+ACTIONS:
+{actions}
+
+PLAYBOOK:
+{playbook}
+
+RULES YOU MUST FOLLOW:
+{guardrails}
+
+Reply with JSON only: {{"action": "<action>", "target": "<node>", "reason": "<one short sentence>"}}"""
+
+RED_PLAYBOOK_V0 = (
+    "Move toward the database. Probe a node before committing to it. Prefer nodes you can "
+    "already reach, and build on nodes you already hold."
+)
+
+RED_REFLECT_SYSTEM = """You review a finished turn-based SIMULATED board game from RED's side.
+Write 1-3 short lessons (max 25 words each) that would help Red reach the database faster next time.
+Lessons must be concrete and reusable: name actions, nodes, or timing. No generic advice.
+Reply with JSON only: {"lessons": ["...", "..."]}"""
 
 
 SYSTEM_FOR = {"blue": BLUE_SYSTEM, "red": RED_SYSTEM}

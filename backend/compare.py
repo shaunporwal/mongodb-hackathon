@@ -15,7 +15,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--levels", type=int, nargs="+", default=[1, 2, 3, 4, 5])
     ap.add_argument("--games", type=int, default=4)
-    ap.add_argument("--env", choices=["auto", "sim", "stub"], default="auto")
+    ap.add_argument("--env", choices=["auto", "sim", "sim_red", "stub"], default="auto")
     ap.add_argument("--learner", choices=["blue", "red"], default="blue")
     a = ap.parse_args()
     db.ensure_indexes()

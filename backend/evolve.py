@@ -32,8 +32,9 @@ Reply with JSON only:
  "diff_summary": "<one short plain-English sentence, e.g. 'After a credential alert: reset passwords, then isolate'>"}"""
 
 
-def _context(level: int) -> str:
-    losses = list(db.games().find({"level": level, "winner": "red"},
+def _context(level: int, learner: str = "blue") -> str:
+    opponent = "blue" if learner == "red" else "red"  # a learner "loss" = the opponent won
+    losses = list(db.games().find({"level": level, "winner": opponent},
                                   {"win_condition": 1, "turns": 1, "harness_version": 1})
                   .sort("started_at", -1).limit(5))
     loss_lines = []
@@ -43,10 +44,11 @@ def _context(level: int) -> str:
         steps = "; ".join(f"T{e['turn']} {e['side']}: {e['text']}" for e in reversed(tail))
         loss_lines.append(f"- {g['_id']} v{g['harness_version']} lost by {g['win_condition']} "
                           f"in {g['turns']} turns. Last moves: {steps}")
-    lessons = [l["text"] for l in db.lessons().find({"level": level}, {"text": 1})
+    lessons = [l["text"] for l in db.lessons().find({"level": level, "side": learner}, {"text": 1})
                .sort("created_at", -1).limit(8)]
     rejected = [h["diff_summary"] for h in db.harness_versions().find(
-        {"kept": False, "eval.level": level}, {"diff_summary": 1}).sort("version", -1).limit(5)]
+        {"kept": False, "eval.level": level, "side": learner}, {"diff_summary": 1})
+        .sort("version", -1).limit(5)]
     return (f"LEVEL {level}\nRECENT LOSSES:\n" + ("\n".join(loss_lines) or "- none") +
             "\nLESSONS:\n" + ("\n".join(f"- {t}" for t in lessons) or "- none") +
             "\nALREADY TRIED AND REJECTED (don't repeat):\n" +
@@ -73,9 +75,9 @@ def _valid(field: str, value, parent: dict):
 
 
 @traceable(name="evolve_propose")
-def propose(parent: dict, level: int) -> tuple[dict, str]:
+def propose(parent: dict, level: int, learner: str = "blue") -> tuple[dict, str]:
     current = {f: parent[f] for f in store.HARNESS_FIELDS}
-    user = f"CURRENT HARNESS (v{parent['version']}):\n{json.dumps(current, indent=1)}\n\n{_context(level)}"
+    user = f"CURRENT HARNESS (v{parent['version']}):\n{json.dumps(current, indent=1)}\n\n{_context(level, learner)}"
     err = ""
     for _ in range(2):
         out, _usage = llm.chat_json(SYSTEM, user + err, kind="evolve", max_tokens=700, temperature=0.7)
@@ -115,7 +117,7 @@ def generation(eval_games: int, train_games: int, make_env, learner: str = LEARN
                   make_env=make_env, learner=learner)
 
     # 2) propose one mutation
-    changes, summary = propose(parent, level)
+    changes, summary = propose(parent, level, learner)
     child = store.save_candidate(parent, changes, summary)
 
     # 3) evaluate both on the same fixed seeds
@@ -141,7 +143,7 @@ def main():
     ap.add_argument("--generations", type=int, default=10)
     ap.add_argument("--eval-games", type=int, default=6)
     ap.add_argument("--train-games", type=int, default=2)
-    ap.add_argument("--env", choices=["auto", "sim", "stub"], default="auto")
+    ap.add_argument("--env", choices=["auto", "sim", "sim_red", "stub"], default="auto")
     ap.add_argument("--learner", choices=["blue", "red"], default=LEARNER)
     a = ap.parse_args()
     db.ensure_indexes()
