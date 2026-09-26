@@ -19,4 +19,5 @@ export const api = {
   train: (n = 200) => post("/api/train", { n }),
   curve: () => get("/api/curve"),
   status: () => get("/api/status"),
+  generations: () => get("/api/generations"),
 };

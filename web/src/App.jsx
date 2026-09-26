@@ -3,6 +3,7 @@ import { api } from "./api.js";
 import NetworkMap from "./NetworkMap.jsx";
 import LogPanel from "./LogPanel.jsx";
 import WinRateChart from "./WinRateChart.jsx";
+import HarnessPanel from "./HarnessPanel.jsx";
 
 // Speed presets for replaying stored games from Atlas. Training/evolution runs from the
 // CLI (python -m backend.evolve); the UI watches the results land.
@@ -119,6 +120,7 @@ export default function App() {
         <aside className="right">
           <LogPanel log={snapshot?.log} hovered={hovered} onHoverNode={setHovered} />
           <WinRateChart curve={curve} xLabel={xLabel} />
+          <HarnessPanel />
         </aside>
       </div>
 
