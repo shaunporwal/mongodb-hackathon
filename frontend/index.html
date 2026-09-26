@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Red Learns — Harness Arena</title>
+<style>
+:root{--bg:#070B14;--panel:#0C1322;--line:#1C2740;--txt:#E6ECF5;--mut:#8391AB;--blue:#4C9AFF;--red:#FF4D55;--amber:#FFB547;--green:#3DDC97;--gold:#FFD166}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(1200px 600px at 30% 20%,#0E1830 0%,var(--bg) 60%);color:var(--txt);font:14px/1.4 system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif}
+a{color:var(--blue)}
+header{display:flex;align-items:center;gap:22px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid var(--line)}
+.brand{font-weight:700;font-size:19px;letter-spacing:.03em}.brand .r{color:var(--red)}
+.stat .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums}
+.grow{flex:1}
+button{font:600 13px system-ui;color:var(--txt);background:#0E1628;border:1px solid var(--line);border-radius:6px;padding:8px 13px;cursor:pointer}
+button:hover{border-color:var(--blue)}button.primary{background:var(--red);border-color:var(--red)}
+button:disabled{opacity:.5;cursor:default}
+.wrap{display:grid;grid-template-columns:1.6fr 1fr;gap:12px;padding:12px 18px}
+@media(max-width:900px){.wrap{grid-template-columns:1fr}}
+.panel{background:linear-gradient(180deg,rgba(18,28,50,.7),rgba(10,16,30,.85));border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.panel h3{margin:0;padding:9px 13px;font:600 11px ui-monospace,Menlo,monospace;color:var(--mut);text-transform:uppercase;letter-spacing:.1em;border-bottom:1px solid var(--line)}
+.map svg{width:100%;height:360px;display:block}
+.legend{display:flex;gap:14px;flex-wrap:wrap;padding:8px 13px;font-size:12px;color:var(--mut);border-top:1px solid var(--line)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:0}
+.log{max-height:360px;overflow:auto;padding:8px 10px;display:flex;flex-direction:column;gap:5px}
+.row{padding:6px 9px;border-radius:6px;border-left:3px solid var(--mut);background:rgba(14,22,40,.7);font-size:13px}
+.row.red{border-color:var(--red)}.row.blue{border-color:var(--blue)}.row.result{border-color:var(--gold);background:rgba(40,34,8,.6)}
+.row.unseen{opacity:.45;font-style:italic}.row.fail{opacity:.6}
+.tag{font-weight:700;margin-right:6px}.tag.red{color:var(--red)}.tag.blue{color:var(--blue)}
+.why{display:block;color:var(--mut);font-size:11px;margin-top:2px}
+.chart svg{width:100%;height:150px}
+.gen{padding:8px 12px;border-bottom:1px solid var(--line);border-left:3px solid var(--mut)}
+.gen.kept{border-left-color:var(--green)}
+.gen .h{display:flex;gap:8px;align-items:center;font-size:12px}
+.gen .badge{margin-left:auto;font-size:10px;padding:1px 6px;border-radius:4px;background:var(--line);color:var(--mut)}
+.gen .badge.kept{background:#14351f;color:var(--green)}
+.gen .diff{font-size:12px;margin-top:3px}.gen .ev{font-size:11px;color:var(--mut);margin-top:2px}
+.empty{padding:14px;color:var(--mut);font-size:12px}
+.bar{height:10px;border-radius:5px;background:linear-gradient(90deg,var(--red) 0 var(--rw,50%),#22304e var(--rw,50%) 100%)}
+.foot{padding:6px 18px 16px;color:var(--mut);font-size:12px}
+.pill{font-size:11px;padding:2px 8px;border:1px solid var(--line);border-radius:20px;color:var(--mut)}
+.pill.live{border-color:var(--green);color:var(--green)}
+</style></head>
+<body>
+<header>
+  <div class="brand"><span class="r">RED</span> learns — Harness Arena</div>
+  <div class="stat"><div class="k">Game</div><div class="v" id="s-game">—</div></div>
+  <div class="stat"><div class="k">Turn</div><div class="v"><span id="s-turn">0</span>/20</div></div>
+  <div class="stat"><div class="k">Defense level</div><div class="v" id="s-level">1</div></div>
+  <div class="stat"><div class="k">Red playbook</div><div class="v">v<span id="s-ver">0</span></div></div>
+  <div class="stat"><div class="k">Red win rate</div><div class="v" style="color:var(--red)" id="s-win">—</div></div>
+  <div class="grow"></div>
+  <span class="pill" id="s-atlas">Atlas —</span>
+  <span class="pill" id="s-train">idle</span>
+</header>
+
+<div style="padding:8px 18px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+  <button class="primary" id="b-train">⚡ Train Red (5 generations)</button>
+  <button id="b-play">▶ Play</button>
+  <button id="b-step">⏭ Step</button>
+  <button id="b-new">⟳ New game</button>
+  <span class="grow"></span>
+  <span class="pill"><span id="s-gens">0</span> generations · <span id="s-lessons">0</span> lessons in memory</span>
+</div>
+
+<div class="wrap">
+  <section class="panel map"><h3>The network — Red is trying to reach the Database</h3>
+    <svg id="map" viewBox="0 0 720 340" preserveAspectRatio="xMidYMid meet"></svg>
+    <div class="legend">
+      <span><i style="background:var(--blue)"></i>Safe</span>
+      <span><i style="background:var(--amber)"></i>Under attack</span>
+      <span><i style="background:var(--red)"></i>Held by Red</span>
+      <span><i style="background:#5B6780"></i>Offline</span>
+      <span>👑 crown jewel = Database</span>
+    </div>
+  </section>
+
+  <aside style="display:flex;flex-direction:column;gap:12px">
+    <section class="panel"><h3>Play-by-play — newest first</h3>
+      <div class="log" id="log"><div class="empty">Press <b>Play</b> or <b>Train Red</b> to begin.</div></div>
+    </section>
+  </aside>
+
+  <section class="panel chart"><h3>Red win rate by harness version — the improvement curve</h3>
+    <svg id="chart" viewBox="0 0 640 150"></svg>
+    <div class="foot" id="chart-note">Run a few generations to see the curve climb.</div>
+  </section>
+
+  <section class="panel"><h3>Harness evolution — Red rewrites its own playbook</h3>
+    <div id="gens"><div class="empty">No mutations yet. Click <b>Train Red</b>.</div></div>
+  </section>
+</div>
+<div class="foot">Who's winning: <span id="s-tug">Red 0%</span><div class="bar" id="tug" style="max-width:360px;margin-top:5px"></div></div>
+
+<script>
+const NS="http://www.w3.org/2000/svg";
+const $=id=>document.getElementById(id);
+const api={
+  get:p=>fetch(p).then(r=>r.json()),
+  post:(p,q)=>fetch(p+(q?"?"+new URLSearchParams(q):""),{method:"POST"}).then(r=>r.json()),
+};
+// Board layout, labels and colors come from the backend (shared/board.json) — single
+// source of truth, no literals duplicated here. Filled by loadConfig().
+let POS={}, LABEL={}, COLOR={}, DEFAULT_EDGES=[];
+async function loadConfig(){
+  const c=await api.get("/api/config");
+  c.nodes.forEach(n=>{POS[n.id]=n.pos;LABEL[n.id]=n.label;});
+  DEFAULT_EDGES=c.edges;
+  COLOR={...c.colors};                    // safe/under_attack/taken/offline
+  for(const k in c.state_alias)COLOR[k]=c.colors[c.state_alias[k]];  // blue/amber/red/gray aliases
+}
+
+let snapshot=null, playing=false, timer=null;
+
+function el(t,a){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e}
+function drawMap(){
+  const svg=$("map");svg.innerHTML="";
+  const nodes=(snapshot&&snapshot.nodes)||Object.keys(POS).map(id=>({id,state:id=="internet"?"offline":"safe",crown:id=="database"}));
+  const edges=(snapshot&&snapshot.edges)||DEFAULT_EDGES;
+  edges.forEach(([a,b])=>{const p=POS[a],q=POS[b];if(p&&q)svg.appendChild(el("line",{x1:p[0],y1:p[1],x2:q[0],y2:q[1],stroke:"#22304e","stroke-width":2}))});
+  nodes.forEach(n=>{const p=POS[n.id];if(!p)return;
+    const c=COLOR[n.state]||COLOR[n.color]||"#4C9AFF";
+    const g=el("g",{transform:`translate(${p[0]} ${p[1]})`});
+    g.appendChild(el("circle",{r:n.crown?26:20,fill:c,opacity:.18}));
+    g.appendChild(el("circle",{r:n.crown?18:14,fill:c,stroke:"#0b1220","stroke-width":2}));
+    const t=el("text",{y:n.crown?-26:-22,fill:"#E6ECF5","font-size":12,"text-anchor":"middle"});
+    t.textContent=(n.crown?"👑 ":"")+(LABEL[n.id]||n.id);g.appendChild(t);
+    svg.appendChild(g);
+  });
+}
+function drawLog(){
+  const box=$("log");const log=(snapshot&&snapshot.log)||[];
+  if(!log.length){box.innerHTML='<div class="empty">Press <b>Play</b> or <b>Train Red</b> to begin.</div>';return}
+  box.innerHTML="";
+  [...log].reverse().forEach(e=>{
+    if(e.side==="result"){const d=document.createElement("div");d.className="row result";d.innerHTML=`<span class="tag">RESULT</span>${e.text}`;box.appendChild(d);return}
+    const d=document.createElement("div");
+    const unseen=e.side!=="red"&&e.detected===false; // opponent moves Red didn't see
+    d.className="row "+e.side+(e.success===false?" fail":"")+(unseen?" unseen":"");
+    let extra="";
+    if(e.reason)extra+=`<span class="why">why: ${e.reason}</span>`;
+    if(e.recalled&&e.recalled.length)extra+=`<span class="why">recalled ${e.recalled.length} lesson(s)</span>`;
+    d.innerHTML=`<span class="tag ${e.side}">${e.side.toUpperCase()} T${e.turn}</span>${e.text}${extra}`;
+    box.appendChild(d);
+  });
+}
+function drawChart(curve,xlabel){
+  const svg=$("chart");svg.innerHTML="";const W=640,H=150,pad=26;
+  const g=(x1,y1,x2,y2)=>svg.appendChild(el("line",{x1,y1,x2,y2,stroke:"#1C2740"}));
+  const Y=r=>H-pad-r*(H-2*pad);
+  g(pad,Y(.5),W-pad,Y(.5));svg.appendChild(Object.assign(el("text",{x:pad,y:Y(.5)-3,fill:"#8391AB","font-size":11}),{textContent:"50%"}));
+  g(pad,Y(0),W-pad,Y(0));g(pad,Y(0),pad,Y(1));
+  if(!curve||!curve.length){$("chart-note").textContent="Run a few generations to see the curve climb.";return}
+  const maxE=curve[curve.length-1].episode||1;
+  const X=e=>pad+(e/Math.max(maxE,1))*(W-2*pad);
+  let d="";curve.forEach((p,i)=>d+=(i?" L":"M")+X(p.episode).toFixed(1)+" "+Y(p.win_rate).toFixed(1));
+  svg.appendChild(el("path",{d,fill:"none",stroke:"var(--red)","stroke-width":3}));
+  curve.forEach(p=>svg.appendChild(el("circle",{cx:X(p.episode),cy:Y(p.win_rate),r:3,fill:p.kept===false?"#8391AB":"#FF4D55"})));
+  const last=curve[curve.length-1];
+  svg.appendChild(Object.assign(el("text",{x:W-pad,y:Y(last.win_rate)-6,fill:"#E6ECF5","font-size":13,"font-weight":700,"text-anchor":"end"}),{textContent:Math.round(last.win_rate*100)+"%"}));
+  $("chart-note").textContent="x-axis: "+(xlabel||"harness version")+" · dots: red=kept, gray=rolled back";
+}
+function drawGens(gens){
+  const box=$("gens");
+  if(!gens||!gens.length){box.innerHTML='<div class="empty">No mutations yet. Click <b>Train Red</b>.</div>';return}
+  box.innerHTML="";
+  gens.forEach(g=>{
+    const d=document.createElement("div");d.className="gen"+(g.kept?" kept":"");
+    const ev=g.eval?`L${g.eval.level} · win ${Math.round(g.eval.win_rate*100)}% vs parent ${Math.round(g.eval.parent_win_rate*100)}% (${g.eval.games} games)`:"";
+    d.innerHTML=`<div class="h"><b>v${g.version}</b><span style="color:var(--mut)">from v${g.parent}</span>`
+      +`<span class="badge ${g.kept?"kept":""}">${g.kept?"KEPT":"ROLLED BACK"}</span></div>`
+      +`<div class="diff">${g.diff_summary||""}</div><div class="ev">${ev}</div>`;
+    box.appendChild(d);
+  });
+}
+async function refresh(){
+  try{
+    const [st,cu,ge,he]=await Promise.all([api.get("/api/status"),api.get("/api/curve"),api.get("/api/generations"),api.get("/api/health")]);
+    $("s-win").textContent=Math.round((st.win_rate||0)*100)+"%";
+    $("s-level").textContent=st.current_level??1;$("s-ver").textContent=st.harness_version??0;
+    $("s-gens").textContent=st.generations??0;$("s-lessons").textContent=st.states_learned??0;
+    $("s-atlas").textContent="Atlas "+(he.atlas_connected?"connected":"offline");$("s-atlas").className="pill"+(he.atlas_connected?" live":"");
+    const training=st.training;$("s-train").textContent=training?"training…":"idle";$("s-train").className="pill"+(training?" live":"");
+    $("b-train").disabled=training;$("b-train").textContent=training?"training…":"⚡ Train Red (5 generations)";
+    const rw=Math.round((st.win_rate||0)*100);$("s-tug").textContent="Red "+rw+"%";document.documentElement.style.setProperty("--rw",rw+"%");
+    drawChart(cu.curve,cu.x_label);drawGens(ge.generations);
+  }catch(e){}
+}
+async function step(){snapshot=await api.post("/api/live/step");render();}
+async function newGame(){snapshot=await api.post("/api/live/new");render();}
+function render(){
+  if(snapshot){$("s-game").textContent=(snapshot.game&&snapshot.game._id)||"—";$("s-turn").textContent=snapshot.turn||0;}
+  drawMap();drawLog();
+  if(snapshot&&snapshot.finished&&playing){setTimeout(async()=>{snapshot=await api.post("/api/live/new");render();},1400);}
+}
+$("b-play").onclick=()=>{playing=!playing;$("b-play").textContent=playing?"⏸ Pause":"▶ Play";
+  if(playing){timer=setInterval(step,900);}else{clearInterval(timer);}};
+$("b-step").onclick=step;$("b-new").onclick=newGame;
+$("b-train").onclick=async()=>{$("b-train").disabled=true;await api.post("/api/train",{generations:5,eval_games:6});refresh();};
+(async()=>{await loadConfig();drawMap();await refresh();await newGame();setInterval(refresh,4000);})();
+</script>
+</body></html>

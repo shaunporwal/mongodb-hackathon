@@ -1,0 +1,28 @@
+{
+  "network_id": "net1",
+  "max_turns": 20,
+  "nodes": [
+    {"id": "internet", "type": "external", "label": "Internet",  "crown": false, "pos": [40, 170]},
+    {"id": "router",   "type": "router",   "label": "Router",    "crown": false, "pos": [150, 170]},
+    {"id": "laptopA",  "type": "laptop",   "label": "Laptop A",  "crown": false, "pos": [290, 80]},
+    {"id": "laptopB",  "type": "laptop",   "label": "Laptop B",  "crown": false, "pos": [290, 260]},
+    {"id": "server",   "type": "server",   "label": "Server",    "crown": false, "pos": [450, 80]},
+    {"id": "printer",  "type": "printer",  "label": "Printer",   "crown": false, "pos": [450, 260]},
+    {"id": "database", "type": "database", "label": "Database",  "crown": true,  "pos": [620, 170]}
+  ],
+  "edges": [
+    ["internet","router"],["router","laptopA"],["router","laptopB"],["laptopA","laptopB"],
+    ["laptopA","server"],["laptopB","printer"],["server","database"],["printer","database"]
+  ],
+  "colors": {"safe": "#4C9AFF", "under_attack": "#FFB547", "taken": "#FF4D55", "offline": "#5B6780"},
+  "state_alias": {"blue": "safe", "amber": "under_attack", "red": "taken", "gray": "offline"},
+  "mitre": {"phishing": "T1566", "password_guess": "T1110", "exploit": "T1190",
+            "steal_passwords": "T1003", "move_sideways": "T1021", "steal_data": "T1041"},
+  "id_map": {"laptop_a": "laptopA", "laptop_b": "laptopB"},
+  "win_condition": {
+    "Red stole the crown jewel": "crown_jewel_stolen",
+    "Red controls most of the network": "half_network_taken",
+    "Blue evicted Red from the network": "red_evicted",
+    "Blue survived all turns": "survived_20_turns"
+  }
+}

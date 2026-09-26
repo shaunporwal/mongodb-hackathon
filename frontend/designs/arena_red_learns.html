@@ -1,0 +1,182 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Red vs Blue — Arena</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{--bg:#070B14;--panel:#0C1322;--line:#1C2740;--txt:#E6ECF5;--mut:#8391AB;--blue:#4C9AFF;--red:#FF4D55;--amber:#FFB547;--green:#3DDC97;--gold:#FFD166;--D:"Chakra Petch",Helvetica,Arial,sans-serif;--M:"IBM Plex Mono",Menlo,monospace}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(1200px 600px at 62% 45%,#1A1020 0%,var(--bg) 60%);color:var(--txt);font:14px/1.35 "IBM Plex Sans",Helvetica,Arial,sans-serif;width:1600px;height:900px;display:grid;grid-template-rows:60px 1fr 190px;gap:10px;padding:12px;overflow:hidden}
+.panel{background:linear-gradient(180deg,rgba(18,28,50,.85),rgba(10,16,30,.9));border:1px solid var(--line);border-radius:10px;position:relative;overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+h3{margin:0;font:600 12px var(--M);color:var(--mut);text-transform:uppercase;letter-spacing:.12em}
+.top{display:flex;align-items:center;gap:28px;padding:0 20px}
+.brand{font:700 20px var(--D);letter-spacing:.04em;display:flex;align-items:center;gap:10px}
+.brand .r{color:var(--red)}.brand .b{color:var(--blue)}
+.lvl{font:700 13px var(--D);padding:5px 12px;border:1px solid var(--amber);color:var(--amber);border-radius:4px;letter-spacing:.06em;box-shadow:0 0 12px rgba(255,181,71,.3)}
+.stat .k{font:500 11px var(--M);color:var(--mut);letter-spacing:.1em;text-transform:uppercase}
+.stat .v{font:700 20px var(--D);font-variant-numeric:tabular-nums}
+.tug{flex:1}.tug .bar{height:12px;border-radius:6px;background:linear-gradient(90deg,var(--red) 0 71%,var(--blue) 71% 100%);box-shadow:0 0 14px rgba(255,77,85,.4)}
+.mid{display:grid;grid-template-columns:2fr 1fr;gap:10px;min-height:0}
+.map{padding:12px 14px}
+.stage{position:absolute;left:14px;right:14px;top:34px;bottom:34px}
+.stage canvas,.stage svg{position:absolute;inset:0;width:100%;height:100%}
+.legend{position:absolute;bottom:10px;left:16px;display:flex;gap:16px;font-size:12px;color:var(--mut)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.log{padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.log div{padding:7px 10px;border-radius:6px;border-left:3px solid;background:rgba(14,22,40,.8);font-size:14px}
+.r{border-color:var(--red)}.b{border-color:var(--blue)}.m{border-color:var(--green);background:rgba(15,45,32,.55)}
+.log .new{box-shadow:0 0 0 1px var(--amber),0 0 18px rgba(255,181,71,.25)}
+.tag{font:700 13px var(--D);margin-right:7px;letter-spacing:.03em}.tr{color:var(--red)}.tb{color:var(--blue)}.tm{color:var(--green)}
+.mitre{font:500 11px var(--M);color:var(--mut);margin-left:6px}
+.bot{display:grid;grid-template-columns:300px 1fr 440px;gap:10px}
+.bot .panel{padding:12px 16px}
+.btn{display:inline-block;padding:9px 15px;border:1px solid var(--line);border-radius:6px;margin:10px 5px 0 0;background:#0E1628;font:600 14px var(--D)}
+.on{background:var(--red);border-color:var(--red);box-shadow:0 0 14px rgba(255,77,85,.5)}
+.diff div{font:13px var(--M);padding:5px 8px;border-radius:4px;margin-top:6px}
+.add{background:rgba(22,70,50,.6);color:var(--green)}
+.sim{position:absolute;top:40px;right:16px;background:rgba(20,30,54,.9);border:1px solid var(--line);color:var(--mut);padding:5px 11px;border-radius:6px;font:500 12px var(--M)}
+</style></head><body>
+<div class="panel top">
+ <div class="brand">🎯 <span><span class="r">RED</span> vs <span class="b">BLUE</span></span></div>
+ <div class="lvl">BEATING DEFENSE LEVEL 2</div>
+ <div class="stat"><div class="k">Game</div><div class="v">#142</div></div>
+ <div class="stat"><div class="k">Red controls</div><div class="v" style="color:var(--red)">2 devices</div></div>
+ <div class="stat"><div class="k">Turn</div><div class="v">6 / 20</div></div>
+ <div class="stat"><div class="k">Lessons recalled</div><div class="v" style="color:var(--green)">3</div></div>
+ <div class="tug"><div class="k stat" style="margin-bottom:6px"><span class="k">Red win rate at Level 2 — <span style="color:var(--red)">71%</span></span></div><div class="bar"></div></div>
+</div>
+
+<div class="mid">
+ <div class="panel map"><h3>The network — a pretend office</h3>
+  <div class="sim">🎲 Simulation · no real systems</div>
+  <div class="stage">
+   <canvas id="globe"></canvas>
+   <svg id="svg" viewBox="0 0 1000 560" preserveAspectRatio="xMidYMid meet">
+    <defs>
+     <filter id="glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+     <filter id="soft"><feGaussianBlur stdDeviation="9"/></filter>
+     <radialGradient id="gBlue" cx="40%" cy="35%"><stop offset="0" stop-color="#2E5FB8"/><stop offset="1" stop-color="#0A1630"/></radialGradient>
+     <radialGradient id="gRed" cx="40%" cy="35%"><stop offset="0" stop-color="#C0323A"/><stop offset="1" stop-color="#2A0A10"/></radialGradient>
+     <radialGradient id="gAmber" cx="40%" cy="35%"><stop offset="0" stop-color="#B8761E"/><stop offset="1" stop-color="#2A1606"/></radialGradient>
+     <radialGradient id="gGold" cx="40%" cy="35%"><stop offset="0" stop-color="#6B5418"/><stop offset="1" stop-color="#1A1406"/></radialGradient>
+     <radialGradient id="gGray" cx="40%" cy="35%"><stop offset="0" stop-color="#39445C"/><stop offset="1" stop-color="#121828"/></radialGradient>
+     <!-- edges: Internet-Router, Router-LaptopA, Router-LaptopB, LaptopA-Server, LaptopB-Printer, Server-Database, Printer-Database -->
+     <path id="e_ir" d="M120 280 C 180 280, 230 280, 290 280"/>
+     <path id="e_ra" d="M290 280 C 360 250, 400 175, 470 150"/>
+     <path id="e_rb" d="M290 280 C 360 310, 400 385, 470 410"/>
+     <path id="e_as" d="M470 150 C 560 150, 630 150, 690 175"/>
+     <path id="e_bp" d="M470 410 C 560 410, 630 410, 690 385"/>
+     <path id="e_sd" d="M700 190 C 780 220, 830 250, 865 275"/>
+     <path id="e_pd" d="M700 370 C 780 340, 830 310, 865 285"/>
+    </defs>
+    <!-- edge underlays -->
+    <g fill="none" stroke-linecap="round" filter="url(#soft)" opacity=".6">
+     <use href="#e_ra" stroke="#FF4D55" stroke-width="12"/>
+     <use href="#e_as" stroke="#FF4D55" stroke-width="12"/>
+     <use href="#e_pd" stroke="#FF4D55" stroke-width="12"/>
+    </g>
+    <!-- base edges -->
+    <g fill="none" stroke="#33415F" stroke-width="2.5" stroke-linecap="round">
+     <use href="#e_ir"/><use href="#e_rb"/><use href="#e_bp"/><use href="#e_sd"/>
+    </g>
+    <!-- compromised edges bright -->
+    <g fill="none" stroke-linecap="round" filter="url(#glow)">
+     <use href="#e_ra" stroke="#FF6A70" stroke-width="3"/>
+     <use href="#e_as" stroke="#FF6A70" stroke-width="3"/>
+     <use href="#e_pd" stroke="#FF6A70" stroke-width="3" stroke-dasharray="7 7"/>
+    </g>
+    <!-- flow packets along the active lateral move printer->database -->
+    <g id="packets"></g>
+    <!-- nodes -->
+    <g id="nodes" font-family="IBM Plex Sans, Helvetica, Arial, sans-serif" text-anchor="middle"></g>
+    <!-- memory callout -->
+    <g>
+     <path d="M660 400 C 640 440, 620 455, 600 470" fill="none" stroke="#3DDC97" stroke-width="1.5" stroke-dasharray="3 5" opacity=".8"/>
+     <rect x="470" y="470" width="240" height="34" rx="8" fill="rgba(15,45,32,.9)" stroke="#3DDC97"/>
+     <text x="486" y="492" fill="#3DDC97" font-size="14" font-weight="600" font-family="IBM Plex Sans, Helvetica, Arial, sans-serif">📝 Recalled: "Printer is rarely watched"</text>
+    </g>
+   </svg>
+  </div>
+  <div class="legend"><span><i style="background:var(--blue)"></i>Safe</span><span><i style="background:var(--amber)"></i>Under attack</span><span><i style="background:var(--red)"></i>Taken by Red</span><span><i style="background:#5B6780"></i>Offline</span><span><i style="background:var(--gold)"></i>Crown jewel</span><span>📝 = Red recalled a lesson</span></div>
+ </div>
+
+ <div class="panel log"><h3 style="margin-bottom:4px">Play-by-play — newest first</h3>
+  <div class="r new"><span class="tag tr">RED T6</span>Printer → Database: quiet lateral move<span class="mitre">T1021</span></div>
+  <div class="m"><span class="tag tm">MEM T6</span>Recalled: Printer is rarely watched</div>
+  <div class="r"><span class="tag tr">RED T5</span>Laptop A → Server: exploit succeeded<span class="mitre">T1210</span></div>
+  <div class="b"><span class="tag tb">BLUE T5</span>Scanned Laptop B: nothing found</div>
+  <div class="r"><span class="tag tr">RED T4</span>Stole saved passwords on Laptop A<span class="mitre">T1003</span></div>
+  <div class="m"><span class="tag tm">MEM T4</span>Recalled: dump creds before moving on</div>
+  <div class="r"><span class="tag tr">RED T3</span>Phishing opened on Laptop A<span class="mitre">T1566</span></div>
+  <div class="b"><span class="tag tb">BLUE T3</span>Reviewed logins on Laptop B: clean</div>
+  <div class="r"><span class="tag tr">RED T2</span>Phishing email sent to Laptop A<span class="mitre">T1566</span></div>
+ </div>
+</div>
+
+<div class="bot">
+ <div class="panel"><h3>Controls</h3><span class="btn">▶ Play</span><span class="btn">⏸</span><span class="btn">⏭ Step</span><br><span class="btn">1x</span><span class="btn">10x</span><span class="btn on">100x</span></div>
+ <div class="panel"><h3>Red win rate over 142 games — the "wow"</h3>
+  <svg viewBox="0 0 800 130" width="100%" height="140" style="margin-top:6px">
+   <defs><linearGradient id="area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF4D55" stop-opacity=".35"/><stop offset="1" stop-color="#FF4D55" stop-opacity="0"/></linearGradient></defs>
+   <g stroke="#1C2740"><line x1="0" y1="30" x2="800" y2="30"/><line x1="0" y1="70" x2="800" y2="70"/><line x1="0" y1="110" x2="800" y2="110"/></g>
+   <polygon fill="url(#area)" points="0,106 55,104 110,99 150,101 150,101 200,88 260,90 320,72 380,66 430,74 490,60 550,54 610,50 680,46 790,42 790,110 0,110"/>
+   <polyline fill="none" stroke="#FF4D55" stroke-width="3.5" filter="url(#glow)" points="0,106 55,104 110,99 150,101 200,88 260,90 320,72 380,66 430,74 490,60 550,54 610,50 680,46 790,42"/>
+   <circle cx="790" cy="42" r="6" fill="#FF4D55" filter="url(#glow)"/>
+   <text x="772" y="30" fill="#E6ECF5" font-size="15" font-weight="700" font-family="Chakra Petch, Helvetica, Arial, sans-serif" text-anchor="end">71%</text>
+   <text x="6" y="102" fill="#8391AB" font-size="13">14%</text>
+   <text x="6" y="126" fill="#8391AB" font-size="12">game 1</text><text x="794" y="126" fill="#8391AB" font-size="12" text-anchor="end">game 142</text>
+  </svg></div>
+ <div class="panel diff"><h3>New lesson written after game #141</h3>
+  <div class="add">+ "Go through the Printer — Blue rarely scans it"</div>
+  <div class="add">+ "Dump saved passwords before the first hop"</div>
+  <div style="color:var(--mut);font:12px 'IBM Plex Sans',Helvetica,Arial,sans-serif;margin-top:6px">stored in MongoDB · recalled by meaning via Vector Search</div></div>
+</div>
+
+<script>
+const NS="http://www.w3.org/2000/svg";
+const el=(t,a,p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);p&&p.appendChild(e);return e};
+// packets along printer->database (active move) and laptopA->server
+const pk=document.getElementById('packets');
+[["e_pd","#FF4D55",5,1.6],["e_as","#FF4D55",4,1.8],["e_ra","#FF4D55",4,1.9]].forEach(([id,c,n,d])=>{for(let i=0;i<n;i++){const ci=el('circle',{r:3.8,fill:c,filter:'url(#glow)'},pk);const m=el('animateMotion',{dur:d+'s',repeatCount:'indefinite',begin:(-d*i/n)+'s'},ci);el('mpath',{href:'#'+id},m)}});
+// icons
+const I={
+ globe:'<circle cx="0" cy="0" r="10"/><ellipse cx="0" cy="0" rx="4.5" ry="10"/><line x1="-10" y1="0" x2="10" y2="0"/><path d="M-8.5 -5 H8.5 M-8.5 5 H8.5"/>',
+ router:'<rect x="-11" y="-3" width="22" height="9" rx="2"/><circle cx="-6" cy="1.5" r="1.2" fill="#fff"/><circle cx="0" cy="1.5" r="1.2" fill="#fff"/><path d="M-4 -3 V-9 M4 -3 V-9 M-7 -11 L-4 -9 M7 -11 L4 -9"/>',
+ laptop:'<rect x="-10" y="-8" width="20" height="13" rx="1.5"/><path d="M-13 8 H13 L11 5 H-11 Z"/>',
+ server:'<rect x="-10" y="-11" width="20" height="6" rx="1.5"/><rect x="-10" y="-3" width="20" height="6" rx="1.5"/><rect x="-10" y="5" width="20" height="6" rx="1.5"/><circle cx="6" cy="-8" r="1" fill="#fff"/><circle cx="6" cy="0" r="1" fill="#fff"/><circle cx="6" cy="8" r="1" fill="#fff"/>',
+ printer:'<rect x="-9" y="-10" width="18" height="7" rx="1.5"/><rect x="-11" y="-3" width="22" height="9" rx="2"/><rect x="-7" y="6" width="14" height="6" rx="1"/><circle cx="7" cy="0" r="1.2" fill="#fff"/>',
+ crown:'<path d="M-11 7 L-11 -6 L-5 0 L0 -9 L5 0 L11 -6 L11 7 Z" fill="#FFD166" stroke="#FFD166"/><line x1="-11" y1="10" x2="11" y2="10" stroke="#FFD166"/>'};
+const N=[
+ {x:90,y:280,n:'Internet',ic:'globe',g:'gGray',s:'#5B6780',lab:'left'},
+ {x:290,y:280,n:'Router',ic:'router',g:'gBlue',s:'#4C9AFF'},
+ {x:470,y:150,n:'Laptop A',ic:'laptop',g:'gRed',s:'#FF4D55',state:'taken',up:true},
+ {x:470,y:410,n:'Laptop B',ic:'laptop',g:'gBlue',s:'#4C9AFF'},
+ {x:700,y:175,n:'Server',ic:'server',g:'gAmber',s:'#FFB547',state:'attack',up:true},
+ {x:700,y:385,n:'Printer',ic:'printer',g:'gRed',s:'#FF4D55',state:'taken'},
+ {x:890,y:280,n:'Database',ic:'crown',g:'gGold',s:'#FFD166',big:true,tc:'#FFD166',lab:'right'}];
+const G=document.getElementById('nodes');
+N.forEach(d=>{const r=d.big?34:28;const g=el('g',{transform:`translate(${d.x} ${d.y})`},G);
+ el('circle',{r:r+14,fill:d.s,opacity:.16,filter:'url(#soft)'},g);
+ const ring=el('circle',{r:r+6,fill:'none',stroke:d.s,'stroke-width':1,opacity:.5},g);
+ if(d.state=='taken'||d.state=='attack'){el('animate',{attributeName:'r',values:`${r+4};${r+13};${r+4}`,dur:'1.7s',repeatCount:'indefinite'},ring);el('animate',{attributeName:'opacity',values:'.7;0;.7',dur:'1.7s',repeatCount:'indefinite'},ring)}
+ el('circle',{r,fill:`url(#${d.g})`,stroke:d.s,'stroke-width':3,filter:'url(#glow)'},g);
+ const ic=el('g',{fill:'none',stroke:d.state=='taken'?'#FFDADA':'#fff','stroke-width':1.8,'stroke-linejoin':'round','stroke-linecap':'round'},g);ic.innerHTML=I[d.ic];
+ const ly=d.up?-(r+16):r+24;
+ const t=el('text',{y:ly,fill:d.tc||'#E6ECF5','font-size':15,'font-weight':600},g);t.textContent=d.n;
+ if(d.big){const c=el('text',{y:r+40,fill:'#FFD166','font-size':12,'font-weight':600},g);c.textContent='👑 crown jewel'}
+});
+// globe backdrop (red-dominant, protagonist = Red)
+const cv=document.getElementById('globe'),ctx=cv.getContext('2d');
+const pts=[];const M=2600;for(let i=0;i<M;i++){const y=1-2*(i+.5)/M,rr=Math.sqrt(1-y*y),th=i*2.39996;pts.push([Math.cos(th)*rr,y,Math.sin(th)*rr])}
+function draw(t){const W=cv.clientWidth,H=cv.clientHeight,dpr=devicePixelRatio||1;if(cv.width!=W*dpr){cv.width=W*dpr;cv.height=H*dpr}
+ ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+ const s=Math.min(W/1000,H/560),ox=(W-1000*s)/2,oy=(H-560*s)/2;const cx=ox+500*s,cy=oy+285*s,R=270*s;
+ const at=ctx.createRadialGradient(cx,cy,R*.85,cx,cy,R*1.18);at.addColorStop(0,'rgba(255,80,90,0)');at.addColorStop(.5,'rgba(255,100,110,.09)');at.addColorStop(1,'rgba(255,80,90,0)');ctx.fillStyle=at;ctx.beginPath();ctx.arc(cx,cy,R*1.18,0,7);ctx.fill();
+ const a=t*0.0001,tilt=.35,ca=Math.cos(a),sa=Math.sin(a),ct=Math.cos(tilt),st=Math.sin(tilt);
+ for(const [x,y,z] of pts){let X=x*ca+z*sa,Z=-x*sa+z*ca;let Y=y*ct-Z*st;Z=y*st+Z*ct;if(Z<-.05)continue;
+  const px=cx+X*R,py=cy+Y*R;const m=Math.min(1,Math.max(0,(-X+.4)/.8));
+  const r=Math.round(255*m+90*(1-m)),g=Math.round(90*m+150*(1-m)),b=Math.round(100*m+255*(1-m));
+  ctx.fillStyle=`rgba(${r},${g},${b},${(.14+.5*Z).toFixed(3)})`;ctx.fillRect(px,py,1.6*s+.4,1.6*s+.4)}
+ ctx.strokeStyle='rgba(160,140,150,.22)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(cx,cy,R,0,7);ctx.stroke();
+ if(!matchMedia('(prefers-reduced-motion: reduce)').matches)requestAnimationFrame(draw)}
+requestAnimationFrame(draw);
+</script>
+</body></html>

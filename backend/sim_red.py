@@ -20,15 +20,9 @@ from engine.actions import BlueAction, RedAction  # noqa: E402
 from engine.game import Game, GameConfig  # noqa: E402
 from engine.state import Owner  # noqa: E402
 
+from backend.board import (LABEL, MAX_TURNS, MITRE, TO_ENGINE, WIN_CONDITION,  # noqa: E402,F401
+                           ours)
 from backend.vuln import DEFENSE_MITIGATION, Flaw  # noqa: E402
-
-MAX_TURNS = 20
-TO_OURS = {"laptop_a": "laptopA", "laptop_b": "laptopB"}
-TO_ENGINE = {v: k for k, v in TO_OURS.items()}
-LABEL = {"internet": "Internet", "router": "Router", "laptopA": "Laptop A", "laptopB": "Laptop B",
-         "server": "Server", "printer": "Printer", "database": "Database"}
-MITRE = {"phishing": "T1566", "password_guess": "T1110", "exploit": "T1190",
-         "steal_passwords": "T1003", "move_sideways": "T1021", "steal_data": "T1041"}
 
 # Red's symbolic action set (the learner picks one of these each turn) -> engine action.
 RED = {
@@ -47,17 +41,6 @@ ACTION_HELP = {
     "steal_data": "on a node you hold, exfiltrate; on the crown-jewel database this wins",
     "probe": "scan a reachable node to discover a hidden flaw (does not take the node)",
 }
-WIN_CONDITION = {
-    "Red stole the crown jewel": "crown_jewel_stolen",
-    "Red controls most of the network": "half_network_taken",
-    "Blue evicted Red from the network": "red_evicted",
-    "Blue survived all turns": "survived_20_turns",
-}
-
-
-def ours(nid): return TO_OURS.get(nid, nid) if nid else nid
-
-
 class RedLearnerEnv:
     """`level` sets how hard the SCRIPTED BLUE defends (1 easy .. 5 hard)."""
 

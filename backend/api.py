@@ -110,19 +110,41 @@ def live_step():
     return replay.step()
 
 
+LEARNER = "red"  # this UI shows the RED attacker learning
+
+# Background trainer: one evolve subprocess at a time.
+_train_proc = {"p": None, "started": None}
+
+
 @app.post("/api/train")
-def train(n: int = 0):
-    # Training runs from the CLI (python -m backend.evolve); the UI only watches.
-    return status()
+def train(generations: int = 5, eval_games: int = 6):
+    """Kick off a Red evolve run in the background (non-blocking)."""
+    import subprocess
+    import sys
+    from datetime import datetime, timezone
+    p = _train_proc["p"]
+    if p and p.poll() is None:
+        return {**status(), "training": True, "note": "already training"}
+    _train_proc["p"] = subprocess.Popen(
+        [sys.executable, "-m", "backend.evolve", "--env", "sim_red", "--learner", LEARNER,
+         "--generations", str(generations), "--eval-games", str(eval_games), "--train-games", "1"],
+        cwd=str(__import__("pathlib").Path(__file__).resolve().parent.parent),
+    )
+    _train_proc["started"] = datetime.now(timezone.utc).isoformat()
+    return {**status(), "training": True, "note": f"started {generations} generations"}
+
+
+def _training() -> bool:
+    p = _train_proc["p"]
+    return bool(p and p.poll() is None)
 
 
 @app.get("/api/curve")
 def curve():
-    """Win rate per harness version (evolution), else rolling win rate over games."""
-    gens = list(db.harness_versions().find({"eval": {"$ne": None}}, {"_id": 0, "version": 1,
-                                                                      "eval": 1, "kept": 1,
-                                                                      "diff_summary": 1})
-                .sort("version", 1))
+    """Red win rate per harness version (the improvement curve)."""
+    gens = list(db.harness_versions().find({"side": LEARNER, "eval": {"$ne": None}},
+                                           {"_id": 0, "version": 1, "eval": 1, "kept": 1,
+                                            "diff_summary": 1}).sort("version", 1))
     if gens:
         best, pts = None, []
         for h in gens:
@@ -136,7 +158,7 @@ def curve():
     games = list(db.games().find({"winner": {"$ne": None}}, {"winner": 1}).sort("started_at", 1))
     pts, wins = [], 0
     for i, g in enumerate(games, 1):
-        wins += g["winner"] == "blue"
+        wins += g["winner"] == LEARNER
         pts.append({"episode": i, "win_rate": wins / i})
     return {"curve": pts, "x_label": "games"}
 
@@ -145,17 +167,43 @@ def curve():
 def status():
     recent = list(db.games().find({"winner": {"$ne": None}}, {"winner": 1})
                   .sort("started_at", -1).limit(20))
-    cur = store.get_curriculum()
+    cur = store.get_curriculum(LEARNER)
     return {"episode": db.games().count_documents({"winner": {"$ne": None}}),
-            "win_rate": (sum(g["winner"] == "blue" for g in recent) / len(recent)) if recent else 0,
-            "states_learned": db.lessons().count_documents({}),
-            "harness_version": store.current_version()["version"],
+            "win_rate": (sum(g["winner"] == LEARNER for g in recent) / len(recent)) if recent else 0,
+            "states_learned": db.lessons().count_documents({"side": LEARNER}),
+            "harness_version": store.current_version(LEARNER)["version"],
             "current_level": cur["current_level"],
-            "generations": db.harness_versions().count_documents({"eval": {"$ne": None}})}
+            "generations": db.harness_versions().count_documents({"side": LEARNER, "eval": {"$ne": None}}),
+            "learner": LEARNER, "training": _training()}
+
+
+@app.get("/api/config")
+def config():
+    """The board (nodes, positions, edges, colors) — single source of truth for the UI."""
+    from backend import board
+    return board.board()
 
 
 @app.get("/api/generations")
 def generations():
     return {"generations": list(db.harness_versions().find(
-        {"eval": {"$ne": None}}, {"_id": 0, "version": 1, "parent": 1, "diff_summary": 1,
-                                 "eval": 1, "kept": 1, "level_unlocked": 1}).sort("version", -1).limit(20))}
+        {"side": LEARNER, "eval": {"$ne": None}},
+        {"_id": 0, "version": 1, "parent": 1, "diff_summary": 1,
+         "eval": 1, "kept": 1, "level_unlocked": 1}).sort("version", -1).limit(20))}
+
+
+# ---- serve the frontend ----
+from pathlib import Path  # noqa: E402
+from fastapi.responses import FileResponse  # noqa: E402
+from fastapi.staticfiles import StaticFiles  # noqa: E402
+
+FRONTEND = Path(__file__).resolve().parent.parent / "frontend"
+for sub in ("designs", "diagrams"):
+    if (FRONTEND / sub).exists():
+        app.mount(f"/{sub}", StaticFiles(directory=str(FRONTEND / sub)), name=sub)
+
+
+@app.get("/")
+def index():
+    f = FRONTEND / "index.html"
+    return FileResponse(str(f)) if f.exists() else {"ok": True, "note": "frontend/index.html missing"}
