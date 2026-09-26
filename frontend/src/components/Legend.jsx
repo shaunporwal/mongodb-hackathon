@@ -9,8 +9,7 @@ export function Legend() {
           {label}
         </span>
       ))}
-      <span><i style={{ background: "#fff" }} />Real users</span>
-      <span className="legend-note">- - - hidden until scanned</span>
+      <span className="legend-note">Simulation only, no real network or exploits</span>
     </div>
   );
 }

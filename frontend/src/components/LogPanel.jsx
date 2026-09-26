@@ -1,9 +1,5 @@
 import { useEffect, useRef } from "react";
 
-// Redesigned per the x.ai-inspired spec: translucent rounded cards instead
-// of boxed tags, a colored left-border accent per side, and a muted
-// sub-detail line (the real data's `reason` / `guardrail_blocked` /
-// `outcome` -- whichever is most informative for that event).
 export function LogPanel({ log, hoveredNodeId, onHoverNode }) {
   const listRef = useRef(null);
   const newestId = log[0]?.id;
@@ -14,7 +10,7 @@ export function LogPanel({ log, hoveredNodeId, onHoverNode }) {
 
   return (
     <div className="panel log-panel">
-      <h3>Play-by-play -- newest first</h3>
+      <div className="section-heading"><h3>02 / Activity feed</h3><span className="section-meta">Newest first</span></div>
       <div className="log-list" ref={listRef}>
         {log.map((entry, index) => (
           <div
@@ -29,7 +25,7 @@ export function LogPanel({ log, hoveredNodeId, onHoverNode }) {
             onMouseLeave={() => onHoverNode(null)}
           >
             <div className="log-entry-main">
-              <span className={`log-turn-tag log-turn-tag-${entry.side.toLowerCase()}`}>T{entry.turn}</span>
+              <span className={`log-turn-tag log-turn-tag-${entry.side.toLowerCase()}`}>{entry.side === "RED" ? "R" : entry.side === "BLUE" ? "B" : "M"} / {String(entry.turn).padStart(2, "0")}</span>
               <span className="log-entry-text">{entry.text}</span>
             </div>
             {entry.detail && <div className="log-entry-detail">{entry.detail}</div>}

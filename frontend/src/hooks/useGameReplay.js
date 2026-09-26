@@ -85,7 +85,6 @@ export function useGameReplay() {
     return {
       loading: true,
       state: null,
-      playbook: null,
       isPlaying,
       speed,
       play: () => setIsPlaying(true),
@@ -100,21 +99,44 @@ export function useGameReplay() {
   const lastEvent = revealed.at(-1) ?? null;
   const nextRed = upcoming.find((e) => e.side === "red");
 
-  const log = revealed
-    .slice()
-    .reverse()
-    .map((e) => ({
+  // Red is the side that learns now (see attacker_overview_for_ui_team.pdf) --
+  // a recalled lesson gets its own "MEM" log line instead of being buried in
+  // the acting row's detail text, matching the brief's sketch. The real data
+  // still records recalls on whichever row triggered them (currently Blue's,
+  // since lessons.csv predates the reframe); we surface that field honestly
+  // rather than reattributing it to Red.
+  const log = [];
+  revealed.forEach((e) => {
+    const hasMemNote = e.recalled_lessons.length > 0 && Boolean(e.reason);
+    log.push({
       id: `${e.game_id}-${e.turn}-${e.side}-${e.action}`,
       turn: e.turn,
       side: e.side.toUpperCase(),
       action: e.action,
       text: e.text,
       nodeId: e.target || e.from || null,
-      detail: e.guardrail_blocked || e.reason || e.outcome || null,
-    }));
+      detail: e.guardrail_blocked || (!hasMemNote ? e.reason : null) || e.outcome || null,
+    });
+    if (hasMemNote) {
+      log.push({
+        id: `${e.game_id}-${e.turn}-${e.side}-${e.action}-mem`,
+        turn: e.turn,
+        side: "MEM",
+        action: null,
+        text: `Recalled: ${e.reason}`,
+        nodeId: e.target || e.from || null,
+        detail: null,
+      });
+    }
+  });
+  log.reverse();
 
-  const generation = data.generations[genIndex] ?? data.generations.at(-1);
+  // generations.csv tracks the defender's playbook improving generation over
+  // generation (win_rate = Blue's win rate). Red's win rate is just the
+  // complement of that in this zero-sum game -- the headline "getting
+  // smarter" metric now points at Red per the updated brief.
   const blueWinRateHistory = data.generations.slice(0, genIndex + 1).map((g) => Math.round((g.win_rate ?? 0) * 100));
+  const redWinRateHistory = blueWinRateHistory.map((v) => 100 - v);
 
   const state = {
     gameId: currentGameId,
@@ -130,26 +152,12 @@ export function useGameReplay() {
     result: isGameOver ? (currentGame?.winner === "blue" ? "blue_win" : "red_win") : null,
     resultReason: isGameOver ? WIN_CONDITION_TEXT[currentGame?.win_condition] ?? currentGame?.win_condition : "",
     blueWinRateHistory,
+    redWinRateHistory,
   };
-
-  const playbook = generation
-    ? {
-        version: generation.version,
-        parentVersion: generation.parent,
-        diffSummary: generation.diff_summary,
-        winRate: Math.round((generation.win_rate ?? 0) * 100),
-        parentWinRate: generation.parent_win_rate !== null ? Math.round(generation.parent_win_rate * 100) : null,
-        kept: generation.kept,
-        evalLevel: generation.eval_level,
-        evalGames: generation.eval_games,
-        levelUnlocked: generation.level_unlocked,
-      }
-    : null;
 
   return {
     loading: false,
     state,
-    playbook,
     isPlaying,
     speed,
     play: () => setIsPlaying(true),

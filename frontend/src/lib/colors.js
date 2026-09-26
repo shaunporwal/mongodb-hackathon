@@ -1,19 +1,9 @@
-// Redesign palette per the x.ai/voice-inspired dark mode spec: deep
-// slate/charcoal backgrounds, neon red vs electric blue accents.
+// Keep SVG colors aligned with the design tokens in index.css.
 export const COLORS = {
-  bg: "#0B0F19",
-  panel: "#111827",
-  panelDeep: "#0B0F19",
-  line: "#1F2937",
-  text: "#E6ECF5",
-  muted: "#8A98B3",
-  blue: "#3B82F6",
-  red: "#FF4D4D",
-  amber: "#FFB547",
-  gray: "#5B6780",
-  green: "#3DDC97",
-  gold: "#FFD166",
-  white: "#FFFFFF",
+  bg: "#101215", panel: "#15191E", elevated: "#20252D",
+  heading: "#669AFF", text: "#D8DEE8", muted: "#929DAC",
+  line: "#77869D", blue: "#669AFF", red: "#FF604C",
+  amber: "#DDB65D", gray: "#77869D", green: "#B6D959",
 };
 
 // Real recorded node_states use "blue/amber/red/gray" directly (see

@@ -1,33 +1,48 @@
+@font-face { font-family: Manrope; src: url('/fonts/manrope-regular.ttf') format('truetype'); font-weight: 400; font-display: swap; }
+@font-face { font-family: Manrope; src: url('/fonts/manrope-semibold.ttf') format('truetype'); font-weight: 500 600; font-display: swap; }
+@font-face { font-family: Manrope; src: url('/fonts/manrope-bold.ttf') format('truetype'); font-weight: 700 800; font-display: swap; }
+
 :root {
-  --bg: #0B1220;
-  --panel: #111A2E;
-  --panel-deep: #0E1628;
-  --line: #23304D;
-  --txt: #E6ECF5;
-  --mut: #8A98B3;
-  --blue: #4C9AFF;
-  --red: #FF5A5F;
-  --amber: #FFB547;
-  --gray: #5B6780;
-  --green: #3DDC97;
+  --bg: #101215;
+  --panel: #15191E;
+  --elevated: #20252D;
+  --heading: #669AFF;
+  --txt: #D8DEE8;
+  --mut: #929DAC;
+  --line: #2A3039;
+  --line-active: #77869D;
+  --blue: #669AFF;
+  --blue-surface: #19283F;
+  --blue-border: #36547F;
+  --red: #FF604C;
+  --red-surface: #301D1C;
+  --red-border: #793C35;
+  --amber: #DDB65D;
+  --amber-surface: #30291B;
+  --amber-border: #6D5830;
+  --green: #B6D959;
+  --green-surface: #CDFA00;
+  --green-border: #A4C900;
+  --gray: #77869D;
+  --lime: #CDFA00;
+  --action: #245DC7;
+  --on-lime: #182300;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --radius-card: 4px;
+  --radius-panel: 4px;
+  --radius-pill: 4px;
+  --font-sans: Manrope, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'SFMono-Regular', Consolas, monospace;
   color-scheme: dark;
-}
-
-html, body {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  height: 100%;
+  font-family: var(--font-sans);
+  color: var(--txt);
   background: var(--bg);
-  overflow: hidden;
-  font-family: Helvetica, Arial, sans-serif;
+  font-synthesis: none;
 }
-
-#root {
-  width: 100%;
-  height: 100dvh;
-}
-
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
+html, body { margin: 0; width: 100%; min-height: 100%; }
+body { -webkit-font-smoothing: antialiased; }
+#root { min-height: 100dvh; }
+button { font: inherit; }
+button:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+::selection { background: var(--lime); color: var(--on-lime); }

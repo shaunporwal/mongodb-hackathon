@@ -1,18 +1,17 @@
-import { Suspense, lazy } from "react";
+import { lazy, Suspense } from "react";
+import { ArrowCounterClockwise, Crown, Eye, Key, LockKey, MagnifyingGlass, Warning } from "@phosphor-icons/react";
 import { EDGES, NODES } from "../data/network";
 import { COLORS, STATUS_COLORS } from "../lib/colors";
 import { Legend } from "./Legend";
 
-// three.js + @react-three/fiber are a meaningful chunk of bundle size --
-// lazy-loaded so only this panel (i.e. actual gameplay) pays for them.
-const VoiceSphereScene = lazy(() => import("../three/VoiceSphereScene").then((m) => ({ default: m.VoiceSphereScene })));
+const VoiceSphereScene = lazy(() => import("../three/VoiceSphereScene").then((module) => ({ default: module.VoiceSphereScene })));
 
 const BLUE_ACTION_BADGE = {
-  isolate: "\u{1F512} ISOLATE",
-  reset_creds: "\u{1F511} RESET",
-  scan: "\u{1F50D} SCAN",
-  review_logins: "\u{1F50D} REVIEW",
-  restore: "♻️ RESTORE",
+  isolate: { icon: LockKey, label: "ISOLATE" },
+  reset_creds: { icon: Key, label: "RESET" },
+  scan: { icon: MagnifyingGlass, label: "SCAN" },
+  review_logins: { icon: Eye, label: "REVIEW" },
+  restore: { icon: ArrowCounterClockwise, label: "RESTORE" },
 };
 
 function nodeById(id) {
@@ -28,15 +27,13 @@ export function NetworkScene({ state, hoveredNodeId, onHoverNode }) {
 
   return (
     <div className="panel network-scene">
-      <h3>The network -- live traffic</h3>
-
-      <Suspense fallback={null}>
-        <VoiceSphereScene />
-      </Suspense>
+      <Suspense fallback={null}><VoiceSphereScene /></Suspense>
+      <div className="section-heading"><h3>01 / Network topology</h3><span className="section-meta">7 devices · Replay</span></div>
 
       {state.nextRedPreview && (
         <div className="intent">
-          {"⚠ "}Red's next move{targetNode ? ` → ${targetNode.name}` : ""}: {state.nextRedPreview.text}
+          <Warning size={14} weight="bold" />
+          Red's next move{targetNode ? ` -> ${targetNode.name}` : ""}: {state.nextRedPreview.text}
         </div>
       )}
 
@@ -58,7 +55,7 @@ export function NetworkScene({ state, hoveredNodeId, onHoverNode }) {
             <g key={`${aId}-${bId}`}>
               <line x1={a.pos[0]} y1={a.pos[1]} x2={b.pos[0]} y2={b.pos[1]} stroke={color} strokeWidth={isHot ? 6 : 3} opacity={isHot ? 0.7 : 0.5} strokeLinecap="round" />
               {isHot && (
-                <circle r="5" fill={STATUS_COLORS[downstreamStatus]}>
+                <circle className="network-traffic" r="5" fill={STATUS_COLORS[downstreamStatus]}>
                   <animateMotion dur="0.9s" repeatCount="indefinite" path={`M${a.pos[0]},${a.pos[1]} L${b.pos[0]},${b.pos[1]}`} />
                 </circle>
               )}
@@ -66,7 +63,7 @@ export function NetworkScene({ state, hoveredNodeId, onHoverNode }) {
           );
         })}
 
-        {/* Nodes -- glassmorphic: soft outer glow, translucent fill, bright ring */}
+        {/* Device rings retain status colors without decorative glass effects. */}
         {NODES.map((node) => {
           const status = state.nodeStatus[node.id] ?? "safe";
           const color = STATUS_COLORS[status];
@@ -74,24 +71,34 @@ export function NetworkScene({ state, hoveredNodeId, onHoverNode }) {
           const isBlueTarget = state.lastBlueTarget === node.id;
           const badge = isBlueTarget && state.log[0]?.side === "BLUE" ? BLUE_ACTION_BADGE[state.log[0]?.action] : null;
           const showGlow = node.id === state.lastAttackTarget && status !== "safe";
-          const r = isHovered ? node.r + 4 : node.r;
+          const r = node.r;
+          const newestEntry = state.log[0];
+          const isPingTarget = newestEntry && newestEntry.nodeId === node.id;
+          const pingColor = newestEntry?.side === "RED" ? COLORS.red : newestEntry?.side === "MEM" ? COLORS.green : COLORS.blue;
 
           return (
             <g key={node.id} onMouseEnter={() => onHoverNode(node.id)} onMouseLeave={() => onHoverNode(null)} style={{ cursor: "pointer" }}>
               {showGlow && <circle cx={node.pos[0]} cy={node.pos[1]} r={r + 16} fill={color} opacity="0.25" filter="url(#glow)" />}
-              <circle cx={node.pos[0]} cy={node.pos[1]} r={r + 6} fill={color} opacity="0.12" filter="url(#glow)" />
-              <circle cx={node.pos[0]} cy={node.pos[1]} r={r} fill={`${color}2A`} stroke={color} strokeWidth={node.crownJewel ? 3.5 : 2.5} />
-              <circle cx={node.pos[0] - r * 0.3} cy={node.pos[1] - r * 0.35} r={r * 0.35} fill="#fff" opacity="0.08" />
-              {node.icon && <text x={node.pos[0]} y={node.pos[1] + 7} fontSize="20" textAnchor="middle">{node.icon}</text>}
-              <text x={node.pos[0]} y={labelY(node)} fill={node.crownJewel ? COLORS.gold : COLORS.text} fontSize="14" fontWeight="700" textAnchor="middle">
+              <circle className={`node-halo${isPingTarget ? " node-halo-active" : ""}`} cx={node.pos[0]} cy={node.pos[1]} r={r} fill="none" stroke={pingColor} strokeWidth="2" style={{ transformOrigin: `${node.pos[0]}px ${node.pos[1]}px` }} />
+              <circle className={`node-disc${isPingTarget ? " node-disc-active" : ""}${isHovered ? " node-disc-hovered" : ""}`} cx={node.pos[0]} cy={node.pos[1]} r={r} fill={COLORS.panel} stroke={color} strokeWidth={node.crownJewel ? 3.5 : 2.5} style={{ transformOrigin: `${node.pos[0]}px ${node.pos[1]}px` }} />
+              {!node.crownJewel && <circle cx={node.pos[0]} cy={node.pos[1]} r="5" fill={color} />}
+              {node.crownJewel && (
+                <foreignObject x={node.pos[0] - 11} y={node.pos[1] - 11} width="22" height="22" style={{ pointerEvents: "none" }}>
+                  <Crown size={22} weight="fill" color={COLORS.amber} />
+                </foreignObject>
+              )}
+              <text x={node.pos[0]} y={labelY(node)} fill={node.crownJewel ? COLORS.amber : COLORS.text} fontSize="15" fontWeight="600" textAnchor="middle" fontFamily="var(--font-sans)">
                 {node.name}
               </text>
               {badge && (
-                <g transform={`translate(${node.pos[0] - 40}, ${node.pos[1] - r - 26})`}>
-                  <rect width="80" height="20" rx="5" fill={COLORS.blue} />
-                  <text x="40" y="14" fill="#fff" fontSize="11" textAnchor="middle" fontWeight="700">{badge}</text>
-                </g>
+                <foreignObject x={node.pos[0] - 44} y={node.pos[1] - r - 30} width="88" height="22" style={{ overflow: "visible", pointerEvents: "none" }}>
+                  <div className="node-action-badge">
+                    <badge.icon size={11} weight="bold" />
+                    {badge.label}
+                  </div>
+                </foreignObject>
               )}
+
             </g>
           );
         })}

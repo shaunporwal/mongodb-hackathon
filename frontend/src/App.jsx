@@ -5,17 +5,19 @@ import { NetworkScene } from "./components/NetworkScene";
 import { LogPanel } from "./components/LogPanel";
 import { BottomControls } from "./components/BottomControls";
 import { WinRateSparkline } from "./components/WinRateSparkline";
-import { PlaybookDiffPanel } from "./components/PlaybookDiffPanel";
+import { LevelLadder } from "./components/LevelLadder";
 import { ResultBanner } from "./components/ResultBanner";
 import "./App.css";
 
 // Rebuilt to replay *real* recorded games (public/data/*.csv, exported from
 // the backend's MongoDB collections) instead of a scripted simulation --
 // see src/hooks/useGameReplay.js for how a "turn" is just revealing the next
-// pre-recorded event. Layout unchanged: top stat bar, middle row (network
-// map 2/3 | log 1/3), bottom row (controls | win-rate history | playbook).
+// pre-recorded event. Per attacker_overview_for_ui_team.pdf, RED is now the
+// side that learns (Blue's 5 difficulty levels are fixed) -- same board,
+// same log, just pointed at Red: bottom row is now
+// controls | Red's win-rate history | the level ladder Red is climbing.
 function App() {
-  const { state, playbook, loading, isPlaying, speed, play, pause, step, setSpeed } = useGameReplay();
+  const { state, loading, isPlaying, speed, play, pause, step, setSpeed } = useGameReplay();
   const [hoveredNodeId, setHoveredNodeId] = useState(null);
 
   if (loading) {
@@ -30,16 +32,18 @@ function App() {
 
   return (
     <div className="app-shell">
-      <TopBar state={state} playbookVersion={playbook?.version} />
+      <TopBar state={state} />
+      <header className="page-heading"><h1 className="eyebrow">Replay lab</h1></header>
       <div className="mid">
         <NetworkScene state={state} hoveredNodeId={hoveredNodeId} onHoverNode={setHoveredNodeId} />
         <LogPanel log={state.log} hoveredNodeId={hoveredNodeId} onHoverNode={setHoveredNodeId} />
       </div>
       <div className="bot">
         <BottomControls isPlaying={isPlaying} speed={speed} onPlay={play} onPause={pause} onStep={step} onSpeedChange={setSpeed} />
-        <WinRateSparkline history={state.blueWinRateHistory} gameNumber={state.gameNumber} />
-        <PlaybookDiffPanel playbook={playbook} />
+        <WinRateSparkline history={state.redWinRateHistory} gameNumber={state.gameNumber} />
+        <LevelLadder currentLevel={state.level} />
       </div>
+      <footer className="page-footer"><span>RED vs BLUE — Adversarial learning lab</span><span>Recorded simulation / MongoDB</span></footer>
       <ResultBanner result={state.result} reason={state.resultReason} />
     </div>
   );

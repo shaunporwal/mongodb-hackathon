@@ -1,17 +1,7 @@
-import { useRef } from "react";
+import { Component, useEffect, useRef, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 
-// x.ai/voice-inspired background: a glowing, organically-displaced sphere
-// with a Fresnel rim that blends red/blue (the "RED vs BLUE" theme), plus a
-// dim wireframe shell for the "network grid" look, sitting behind the 2D SVG
-// node overlay (that overlay stays 2D and data-driven -- this layer is
-// purely atmospheric).
-//
-// Uses a hand-written trig-based pseudo-noise rather than a textbook
-// simplex-noise GLSL snippet: this environment has no browser to visually
-// verify shader output in, so a shader that's simple enough to read and be
-// confident is correct beats a more "authentic" one that might silently
-// render black if mistyped from memory.
+// Decorative WebGL layer; network data and hit targets remain in the SVG above it.
 const vertexShader = /* glsl */ `
   uniform float uTime;
   varying vec3 vNormal;
@@ -40,38 +30,41 @@ const fragmentShader = /* glsl */ `
     vec3 viewDir = normalize(vViewPosition);
     float fresnel = pow(1.0 - max(dot(normalize(vNormal), viewDir), 0.0), 2.2);
 
-    vec3 red = vec3(1.0, 0.30, 0.30);
-    vec3 blue = vec3(0.23, 0.51, 0.965);
+    vec3 red = vec3(1.0, 0.231, 0.188);
+    vec3 blue = vec3(0.0, 0.478, 1.0);
     float mixFactor = 0.5 + 0.5 * sin(uTime * 0.3 + vNormal.x * 2.0);
     vec3 rim = mix(blue, red, mixFactor);
 
     vec3 base = vec3(0.02, 0.03, 0.07);
-    vec3 color = base + rim * fresnel * 1.6;
+    vec3 color = base + rim * fresnel * 1.15;
 
-    gl_FragColor = vec4(color, fresnel * 0.85 + 0.12);
+    gl_FragColor = vec4(color, fresnel * 0.6 + 0.035);
   }
 `;
 
-function GlowSphere() {
+function GlowSphere({ reducedMotion }) {
   const materialRef = useRef(null);
   const groupRef = useRef(null);
-  // A ref (not useMemo) so mutating it in useFrame is the standard "mutable
-  // box" pattern -- this is the idiomatic r3f way to animate a shader
-  // uniform every frame without triggering a React re-render.
-  const uniformsRef = useRef({ uTime: { value: 0 } });
+  const [uniforms] = useState(() => ({ uTime: { value: 0 } }));
 
-  useFrame((state) => {
-    uniformsRef.current.uTime.value = state.clock.elapsedTime;
-    if (groupRef.current) groupRef.current.rotation.y = state.clock.elapsedTime * 0.05;
+  useFrame((_, delta) => {
+    if (reducedMotion) return;
+    if (!materialRef.current) return;
+    const elapsed = materialRef.current.uniforms.uTime.value + Math.min(delta, 0.05);
+    materialRef.current.uniforms.uTime.value = elapsed;
+    if (groupRef.current) {
+      groupRef.current.rotation.y = elapsed * 0.09;
+      groupRef.current.rotation.z = Math.sin(elapsed * 0.12) * 0.08;
+    }
   });
 
   return (
     <group ref={groupRef}>
       <mesh>
-        <icosahedronGeometry args={[1.6, 6]} />
+        <icosahedronGeometry args={[1.6, 4]} />
         <shaderMaterial
           ref={materialRef}
-          uniforms={uniformsRef.current}
+          uniforms={uniforms}
           vertexShader={vertexShader}
           fragmentShader={fragmentShader}
           transparent
@@ -79,20 +72,60 @@ function GlowSphere() {
       </mesh>
       <mesh>
         <icosahedronGeometry args={[1.75, 2]} />
-        <meshBasicMaterial color="#3B82F6" wireframe transparent opacity={0.12} />
+        <meshBasicMaterial color="#007AFF" wireframe transparent opacity={0.16} />
       </mesh>
+      <group rotation={[0.7, 0.25, -0.4]}>
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[1.94, 0.006, 6, 160]} />
+          <meshBasicMaterial color="#669AFF" transparent opacity={0.38} />
+        </mesh>
+        <mesh rotation={[0.4, 0.8, 0.5]}>
+          <torusGeometry args={[1.87, 0.004, 6, 160]} />
+          <meshBasicMaterial color="#FF604C" transparent opacity={0.26} />
+        </mesh>
+      </group>
     </group>
   );
 }
 
+class SceneBoundary extends Component {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  render() { return this.state.failed ? null : this.props.children; }
+}
+
 export function VoiceSphereScene() {
+  const hostRef = useRef(null);
+  const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const [visible, setVisible] = useState(true);
+  const [pageVisible, setPageVisible] = useState(() => !document.hidden);
+  useEffect(() => {
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const onMotion = () => setReducedMotion(query.matches);
+    const onVisibility = () => setPageVisible(!document.hidden);
+    const observer = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting));
+    if (hostRef.current) observer.observe(hostRef.current);
+    query.addEventListener("change", onMotion);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      observer.disconnect();
+      query.removeEventListener("change", onMotion);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, []);
   return (
-    <Canvas
-      camera={{ position: [0, 0, 4.2], fov: 45 }}
-      gl={{ alpha: true, antialias: true }}
-      style={{ position: "absolute", inset: 0 }}
-    >
-      <GlowSphere />
-    </Canvas>
+    <div className="network-atmosphere" ref={hostRef} aria-hidden="true">
+      <SceneBoundary>
+        <Canvas
+          camera={{ position: [0, 0, 5.6], fov: 45 }}
+          dpr={[1, 1.5]}
+          frameloop={reducedMotion || !visible || !pageVisible ? "demand" : "always"}
+          gl={{ alpha: true, antialias: true, powerPreference: "low-power" }}
+          fallback={null}
+        >
+          <GlowSphere reducedMotion={reducedMotion} />
+        </Canvas>
+      </SceneBoundary>
+    </div>
   );
 }

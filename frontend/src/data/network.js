@@ -12,7 +12,7 @@ export const NODES = [
   { id: "laptopB", name: "Laptop B", pos: [500, 410], r: 30 },
   { id: "server", name: "Server", pos: [680, 150], r: 32 },
   { id: "printer", name: "Printer", pos: [680, 410], r: 28 },
-  { id: "database", name: "Database", pos: [880, 280], r: 36, crownJewel: true, icon: "\u{1F451}" },
+  { id: "database", name: "Database", pos: [880, 280], r: 36, crownJewel: true },
 ];
 
 export const EDGES = [
