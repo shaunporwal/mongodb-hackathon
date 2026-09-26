@@ -16,6 +16,9 @@ You only see noisy signals, not the attacker's true position. One action per tur
 Detect actions reveal information; respond actions clean up; harden and deceive prevent.
 Win by surviving 20 turns or fully evicting the attacker. Protect the crown-jewel database.
 
+ACTIONS:
+{actions}
+
 PLAYBOOK:
 {playbook}
 
@@ -116,8 +119,10 @@ def fallback(legal: list[dict], guardrails: list[str], history: list[dict],
 # ---------- prompt + choice ----------
 
 def build_prompt(harness: dict, obs: dict, signals: list[str], lessons: list[dict],
-                 legal: list[dict], history: list[dict], level: int, error: str = "") -> tuple[str, str]:
+                 legal: list[dict], history: list[dict], level: int, error: str = "",
+                 action_help: dict | None = None) -> tuple[str, str]:
     system = SYSTEM.format(
+        actions="\n".join(f"- {a}: {d}" for a, d in (action_help or {}).items()) or "- see legal actions",
         playbook=harness["playbook"],
         guardrails="\n".join(f"- {g}" for g in harness.get("guardrails") or []) or "- none",
         signals=", ".join(harness.get("signals") or []),
@@ -147,6 +152,7 @@ def choose_action(adapter, harness: dict, level: int, memory_enabled: bool,
     signals_seen, tokens_in, tokens_out, prompt}."""
     obs = adapter.observe()
     legal = adapter.legal_actions()
+    action_help = adapter.describe_actions()
     signals = filter_signals(obs.get("signals") or [], harness)
     guardrails = harness.get("guardrails") or []
     lessons = memory.recall(situation_text(signals, level), harness.get("memory_policy"),
@@ -155,7 +161,8 @@ def choose_action(adapter, harness: dict, level: int, memory_enabled: bool,
     tokens_in = tokens_out = 0
     blocked, error, prompt = None, "", None
     for _ in range(2):  # first try + one retry
-        system, user = build_prompt(harness, obs, signals, lessons, legal, history, level, error)
+        system, user = build_prompt(harness, obs, signals, lessons, legal, history, level, error,
+                                    action_help)
         prompt = {"system": system, "user": user}
         try:
             out, usage = llm.chat_json(system, user, kind="move", max_tokens=150)

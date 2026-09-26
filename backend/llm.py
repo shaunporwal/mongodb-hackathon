@@ -1,10 +1,11 @@
 """OpenRouter chat wrapper: one JSON-mode call, returns parsed dict + token usage."""
 import json
 import os
+import time
 from functools import lru_cache
 
 from langsmith import traceable
-from openai import OpenAI
+from openai import OpenAI, RateLimitError
 
 from backend import db  # noqa: F401  (loads .env)
 
@@ -28,6 +29,18 @@ def model(kind: str) -> str:
     return os.environ.get("EVOLVE_MODEL") or DEFAULT_EVOLVE_MODEL
 
 
+# Client-side throttle: new OpenRouter accounts get ~20 requests/min per model.
+LLM_RPM = float(os.environ.get("LLM_RPM", "18"))
+_last_call = [0.0]
+
+
+def _throttle() -> None:
+    gap = 60.0 / LLM_RPM - (time.monotonic() - _last_call[0])
+    if gap > 0:
+        time.sleep(gap)
+    _last_call[0] = time.monotonic()
+
+
 def _parse_json(text: str) -> dict:
     text = text.strip()
     if text.startswith("```"):
@@ -41,13 +54,21 @@ def _parse_json(text: str) -> dict:
 def chat_json(system: str, user: str, kind: str = "move", max_tokens: int = 400,
               temperature: float = 0.3) -> tuple[dict, dict]:
     """Returns (parsed_json, {"tokens_in", "tokens_out"}). Raises ValueError on unparseable output."""
-    resp = client().chat.completions.create(
-        model=model(kind),
-        messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
-        response_format={"type": "json_object"},
-        max_tokens=max_tokens,
-        temperature=temperature,
-    )
+    for attempt in range(6):
+        _throttle()
+        try:
+            resp = client().chat.completions.create(
+                model=model(kind),
+                messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
+                response_format={"type": "json_object"},
+                max_tokens=max_tokens,
+                temperature=temperature,
+            )
+            break
+        except RateLimitError:
+            if attempt == 5:
+                raise
+            time.sleep(5 * (attempt + 1))
     usage = {
         "tokens_in": getattr(resp.usage, "prompt_tokens", 0) or 0,
         "tokens_out": getattr(resp.usage, "completion_tokens", 0) or 0,

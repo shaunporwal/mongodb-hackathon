@@ -3,3 +3,5 @@ voyageai>=0.3
 openai>=1.40
 langsmith>=0.1.100
 python-dotenv>=1.0
+fastapi>=0.110
+uvicorn>=0.29

@@ -18,6 +18,7 @@ Only the runner (the referee) touches the Env directly:
     result(turn) -> dict | None        # None while running, else {"winner": "red"|"blue",
                                        #   "win_condition": "crown_jewel_stolen"|"half_network_taken"|
                                        #   "survived_20_turns"|"red_evicted"}
+    describe_actions() -> dict         # optional: {action: one-line effect}, shown to Blue
     metrics() -> dict                  # optional extras for the games doc: time_to_detect,
                                        #   time_to_evict, max_nodes_red, false_alarms, collateral_nodes
 """
@@ -30,6 +31,7 @@ class Adapter(Protocol):
     def observe(self) -> dict: ...
     def legal_actions(self) -> list[dict]: ...
     def act(self, action: str, target: str) -> dict: ...
+    def describe_actions(self) -> dict: ...
 
 
 class SimAdapter:
@@ -47,3 +49,7 @@ class SimAdapter:
 
     def act(self, action: str, target: str) -> dict:
         return self._env.blue_act(self.turn, action, target)
+
+    def describe_actions(self) -> dict:
+        fn = getattr(self._env, "describe_actions", None)
+        return fn() if fn else {}

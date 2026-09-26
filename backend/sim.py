@@ -39,6 +39,16 @@ BLUE = {
     "restore": (BlueAction.RESTORE, "respond"),
 }
 
+# What each Blue action does in the engine (shown to Blue like tool descriptions).
+ACTION_HELP = {
+    "scan": "check a node; confirms or clears suspicion (turns suspicious_activity into confirmed_intruder)",
+    "patch": "harden a node against exploits; does NOT remove an intruder already there",
+    "firewall_block": "block one link out of this node; does NOT remove an intruder",
+    "reset_creds": "make stolen passwords on this node useless; does NOT remove an intruder",
+    "isolate": "take a node offline: stops spread through it, but the node is lost to Blue (not allowed on database)",
+    "restore": "wipe an intruder-held node back to Blue control; fails on a clean node",
+}
+
 WIN_CONDITION = {
     "Red stole the crown jewel": "crown_jewel_stolen",
     "Red controls most of the network": "half_network_taken",
@@ -139,6 +149,9 @@ class EngineEnv:
             "offline": [ours(n.id) for n in net.nodes.values() if n.owner is Owner.OFFLINE],
             "blocked_links": [[ours(a), ours(b)] for a, b in sorted(net.blocked)],
         }
+
+    def describe_actions(self) -> dict:
+        return ACTION_HELP
 
     def legal_actions(self) -> list[dict]:
         out = []
