@@ -10,26 +10,35 @@ Read [CLAUDE.md](../CLAUDE.md) first: it has the full project brief, the agreed 
 **Hard line (keep in the submission):** the learner only ever emits one of the fixed symbolic actions against fake nodes. No shell commands, no real payloads, no CVE-specific code. That's what keeps it a game and not an offensive tool.
 
 **What splits across who builds it:**
-- **Reusable as-is (the whole harness machinery):** `db.py`, `llm.py`, `memory.py`, `store.py`, `harness.py` structure, `reflect.py`, `evolve.py`, `runner.py`, `compare.py`, `api.py`, `web/`. The loop doesn't care which side is learning.
-- **Neutral plumbing done in this session:** `side`/`winner` are parameterized so the loop can serve a Red learner (see "Learner side" below). Config knob added.
-- **For the user + GLM 5.3 to write (this is the attacker-behavior part):**
-  1. In `backend/sim.py` / the engine: the abstract vulnerability flag on a node type, with an exploit-success probability, and Blue defense **levels 1–5** (mirror of the Red curriculum: L1 barely patches → L5 honeypots + segmentation).
-  2. The **Red harness prompt** (the attacker system prompt + starting playbook = harness v0 for the Red learner). Structurally identical to Blue's in `harness.py`, but written from the attacker's seat.
-  3. Wire Red's move choice through `choose_action()` the same way Blue's is today.
-  - **Config:** set `MOVE_MODEL` to GLM 5.3's OpenRouter model ID; keep `base_url="https://openrouter.ai/api/v1"`. No other code change to point the move model at GLM.
-  - **Why the user does this part:** the previous agent (Claude) is repeatedly stopped by a safety classifier when writing attacker move logic or attacker prompts, even symbolic. The neutral scaffolding is here; the attacker content is intentionally left blank for the user/GLM to fill.
+- **Reusable as-is (the whole harness machinery):** `db.py`, `llm.py`, `memory.py`, `store.py`, `harness.py`, `reflect.py`, `evolve.py`, `runner.py`, `compare.py`, `api.py`, `web/`. The loop is now **side-agnostic** (done this session).
+- **Side-agnostic refactor — DONE:** every piece is parameterized by learner side.
+  - `backend/prompts.py` holds the prompt text. `BLUE_*` are filled and working; **`RED_SYSTEM`, `RED_PLAYBOOK_V0`, `RED_REFLECT_SYSTEM` are the empty slots to fill** — the ONE place attacker-voice text goes. `system_for("red")` raises a clear error until they're filled, so the Blue path is unaffected.
+  - Harness versions, curriculum, and lessons are keyed by `side` in the same collections (Blue and Red lineages don't collide). `harness_versions` unique index is now `(side, version)`.
+  - `choose_action(side=...)`, `reflect(learner=...)`, `evolve --learner red` / `LEARNER=red` env, `play_game(learner=...)`, `win_rate(learner=...)` all thread the side through.
+  - `backend/vuln.py`: abstract flaw mechanic (hidden flag + fixed `exploit_prob` + `reveal()`, `DEFENSE_MITIGATION` per Blue level). Pure game math, not wired into the engine yet.
+- **Left for the user + GLM 5.3 (the two attacker-content pieces):**
+  1. **Fill the `RED_*` strings in `backend/prompts.py`** — the attacker system prompt + starting playbook + reflection prompt, symbolic only. This is the part the safety classifier keeps cutting for the AI agent; a human or GLM writes it.
+  2. **Restructure the sim so Red is the LLM and Blue is scripted at defense levels 1–5.** Today `backend/sim.py` wraps the teammate engine with a scripted Red and lets the LLM drive Blue. For the Red-learner, invert it: Blue plays a fixed defense policy per level (mirror the old Red curriculum: L1 barely patches → L5 honeypots + segmentation), and Red's move comes from `choose_action(..., side="red")`. Wire `vuln.Flaw` onto a node and pass `DEFENSE_MITIGATION[level]` into the roll. This is the sim/engine work — behavior, so also user/GLM territory.
+  - **Config:** set `MOVE_MODEL` to GLM 5.3's OpenRouter model ID; keep `base_url`. Set `LEARNER=red`. No other code change.
 
-The rest of this doc describes the Blue-learner build that already exists. Almost all of it is reused unchanged; only the pieces in point 1–3 above are new work.
+### Benchmark design (agreed direction) — measure efficiency, not just win/loss
+Treat each abstract flaw as a benchmark and measure how fast the learner handles it, averaged over seeded games per defense level:
+- **Flaws (all symbolic node properties, no real technique):** `weak-credentials`, `unpatched-service`, `default-config` (loud/high-detection), `chained-trust` (only after an adjacent node is owned), `dormant-flaw` (the "zero-day" analogue: `discovered=False`, costs turns to reveal).
+- **Metrics:** time-to-discovery (turns until a probe reveals the flaw), time-to-exploitation (discovery → successful `exploit` roll), time-to-crown-jewel (headline curve), success rate per level, wasted actions (attempts on patched/non-vulnerable nodes).
+- These are neutral measurement; `metrics()` in the sim can emit them once the flaw is wired onto a node. The flaw *definitions* live in sim config, alongside the Red prompt.
+- **Framing anchor for the submission:** "discovery/exploitation" here = flipping and reading symbolic flags and sequencing fixed actions. Nothing transfers to real vulnerability discovery.
+
+The rest of this doc describes the Blue-learner build; almost all of it is reused unchanged.
 
 ---
 
 ## TL;DR
 
-- **End to end works:** simulator → Blue LLM harness → Atlas (games, events, lessons) → reflection → evolve → UI. Every piece has run against real Atlas data at least once.
-- **Blocker right now: OpenRouter credits are exhausted** (HTTP 402). No LLM runs (Blue moves, reflection, evolve) can happen until someone adds credits at https://openrouter.ai/settings/credits. The account also has a new-account limit of 20 requests/min per model; `llm.py` now throttles to 18/min.
-- **No evolve generation has completed yet**, so there is no "harness got better" result to show. This is the #1 thing to get for the demo.
-- **Red has only one behavior**: the teammate engine has a single scripted Red, so levels 1–5 play identically and the curriculum can't show a climb.
-- **The branch can't be PR'd yet** because it has no shared history with `origin/main`. It needs a rebase (see "What's left", step 6).
+- **Blue end to end works** against real Atlas data: simulator (teammate engine) → Blue LLM harness → games/events/lessons in Atlas → reflection → UI. Verified with a live game on 2026-09-26 afternoon (`g_0009`).
+- **The loop is side-agnostic** (see PIVOT above). Running the Red learner needs only the two attacker-content pieces filled in.
+- **OpenRouter:** a working key is in `.env` (a second key was supplied when the first hit its credit ceiling). New-account limit is 20 req/min per model; `llm.py` throttles to 18/min and retries 429s.
+- **Red still has one scripted behavior** in the teammate engine, so Blue-learner levels 1–5 play identically. For the Red learner this doesn't matter — Blue becomes the scripted side with real per-level policies to write.
+- **The branch can't be PR'd yet** — no shared history with `origin/main`; needs a rebase (see "What's left").
 
 ## Done
 
