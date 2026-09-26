@@ -127,9 +127,19 @@ def generation(eval_games: int, train_games: int, make_env, learner: str = LEARN
     changes, summary = propose(parent, level, learner)
     child = store.save_candidate(parent, changes, summary)
 
-    # 3) evaluate both on the same fixed seeds
+    # 3) evaluate on the same fixed seeds. Reuse the parent's cached score when it was
+    #    already measured on this exact (level, seed-set) — halves the games per generation.
     seeds = seeds_for(level, eval_games)
-    parent_wr = win_rate(parent, level, seeds, make_env, learner=learner)
+    pe = parent.get("eval") or {}
+    if pe.get("level") == level and pe.get("games") == eval_games and "win_rate" in pe:
+        parent_wr = pe["win_rate"]
+    else:
+        parent_wr = win_rate(parent, level, seeds, make_env, learner=learner)
+        # cache it on the parent so future generations at this level reuse it
+        db.harness_versions().update_one(
+            {"version": parent["version"], "side": learner},
+            {"$set": {"eval": {"level": level, "games": eval_games, "win_rate": parent_wr,
+                               "parent_win_rate": (parent.get("eval") or {}).get("parent_win_rate")}}})
     child_wr = win_rate(child, level, seeds, make_env, learner=learner)
     kept = child_wr > parent_wr
     store.record_eval(child["version"], level, eval_games, child_wr, parent_wr, kept, side=learner)

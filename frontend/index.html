@@ -58,9 +58,13 @@ button:disabled{opacity:.5;cursor:default}
 .prow .pf{font:600 12px ui-monospace,monospace;color:var(--red)}
 .prow .pk{margin-left:auto;font-size:11px;color:var(--mut)}
 .prow .pk b{color:var(--green)}
-.prow .pcur{font-size:12px;color:var(--txt);margin-top:3px;white-space:pre-wrap;word-break:break-word}
+.prow .pdesc{font-size:11px;color:var(--mut);margin-top:2px}
+.prow .pcurlabel,.prow .phlabel{font:10px ui-monospace,monospace;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;margin-top:5px}
+.prow .pcur{font-size:12px;color:var(--txt);margin-top:2px;white-space:pre-wrap;word-break:break-word}
 .prow.inactive .pf{color:var(--mut)}
 .prow .dead{font-size:11px;color:var(--amber);margin-top:2px}
+.gen .ts{font:11px ui-monospace,monospace;color:var(--mut)}
+.gen .badge{margin-left:auto}
 .bar{height:10px;border-radius:5px;background:linear-gradient(90deg,var(--red) 0 var(--rw,50%),#22304e var(--rw,50%) 100%)}
 .foot{padding:6px 18px 16px;color:var(--mut);font-size:12px}
 .pill{font-size:11px;padding:2px 8px;border:1px solid var(--line);border-radius:20px;color:var(--mut)}
@@ -80,7 +84,8 @@ button:disabled{opacity:.5;cursor:default}
 </header>
 
 <div style="flex:none;padding:8px 18px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-  <button class="primary" id="b-train">⚡ Train Red (5 generations)</button>
+  <button class="primary" id="b-train">⚡ Train Red</button>
+  <button id="b-stop" hidden>■ Stop</button>
   <button id="b-play">▶ Play</button>
   <button id="b-step">⏭ Step</button>
   <button id="b-new">⟳ New game</button>
@@ -228,7 +233,9 @@ function drawGens(gens){
         +`<div class="now">+ ${fmtVal(c.after)}</div></div>`;
     });
     if(!changes)changes=`<div class="diff">${g.diff_summary||""}</div>`;
+    const ts=g.created_at?new Date(g.created_at).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",second:"2-digit"}):"";
     d.innerHTML=`<div class="h"><b>v${g.version}</b><span style="color:var(--mut)">from v${g.parent}</span>`
+      +(ts?`<span class="ts">${ts}</span>`:"")
       +`<span class="badge ${g.kept?"kept":""}">${g.kept?"KEPT":"ROLLED BACK"}</span></div>`
       +`<div class="diff" style="font-style:italic">“${g.diff_summary||""}”</div>`
       +changes+`<div class="ev">${ev} — ${g.kept?"beat the previous version, so it was adopted":"did not beat the previous version, so it was discarded"}</div>`;
@@ -239,6 +246,14 @@ function drawGens(gens){
 // so 'signals'/'thresholds' changes are inert). Shown as a note in the UI.
 const INERT_FOR_RED={signals:1,thresholds:1};
 const FIELD_LABEL={playbook:"Playbook",signals:"Signals",thresholds:"Thresholds",memory_policy:"Memory policy",guardrails:"Guardrails"};
+// Plain-English meaning of each of the 5 evolvable harness parameters.
+const FIELD_DESC={
+  playbook:"The strategy text Red reads before every move.",
+  signals:"Which clues Red pays attention to, in priority order.",
+  thresholds:"How strong a clue must be before Red acts on it.",
+  memory_policy:"How many past-game lessons Red recalls (k) and how much it favours recent ones.",
+  guardrails:"Hard rules Red must follow every game (e.g. “after exploiting a node, move on”)."
+};
 function showTab(which){
   ["params","gens"].forEach(t=>{$(t).hidden=(t!==which);$("tab-"+t).classList.toggle("on",t===which);});
 }
@@ -253,11 +268,15 @@ function drawParams(h){
       hist+=`<div class="chg"><span class="fld">v${x.version} · ${x.kept?"kept":"rolled back"} · Red ${Math.round(x.win_rate*100)}% vs ${Math.round(x.parent_win_rate*100)}%</span>`
         +`<div class="was">− ${fmtVal(x.before)}</div><div class="now">+ ${fmtVal(x.after)}</div></div>`;
     });
+    const tried=d.tried||0, kept=d.kept||0;
+    const countTxt=tried===0?"unchanged since v0"
+      :`${kept} of ${tried} change${tried>1?"s":""} kept`;
     row.innerHTML=`<div class="ph"><span class="pf">${FIELD_LABEL[k]}</span>`
-      +`<span class="pk">${d.tried||0} tried · <b>${d.kept||0} kept</b></span></div>`
-      +`<div class="pcur">${fmtVal(d.current)}</div>`
-      +(INERT_FOR_RED[k]?`<div class="dead">no effect on Red yet — Red receives no signals</div>`:"")
-      +hist;
+      +`<span class="pk">${countTxt}</span></div>`
+      +`<div class="pdesc">${FIELD_DESC[k]}</div>`
+      +`<div class="pcurlabel">current value:</div><div class="pcur">${fmtVal(d.current)}</div>`
+      +(INERT_FOR_RED[k]?`<div class="dead">⚠ has no effect on Red in this sim — Red receives no signals</div>`:"")
+      +(hist?`<div class="phlabel">changes tried:</div>`+hist:"");
     box.appendChild(row);
   });
 }
@@ -268,8 +287,11 @@ async function refresh(){
     $("s-level").textContent=st.current_level??1;$("s-ver").textContent=st.harness_version??0;
     $("s-gens").textContent=st.generations??0;$("s-lessons").textContent=st.states_learned??0;
     $("s-atlas").textContent="Atlas "+(he.atlas_connected?"connected":"offline");$("s-atlas").className="pill"+(he.atlas_connected?" live":"");
-    const training=st.training;$("s-train").textContent=training?"training…":"idle";$("s-train").className="pill"+(training?" live":"");
-    $("b-train").disabled=training;$("b-train").textContent=training?"training…":"⚡ Train Red (5 generations)";
+    const training=st.training;const pr=st.progress||{};
+    const ptxt=training?`training… ${pr.done||0}/${pr.goal||"?"} gens`:"idle";
+    $("s-train").textContent=ptxt;$("s-train").className="pill"+(training?" live":"");
+    $("b-train").disabled=training;$("b-train").textContent=training?`training… (${pr.done||0}/${pr.goal||"?"})`:"⚡ Train Red";
+    $("b-stop").hidden=!training;
     const rw=Math.round((st.win_rate||0)*100);$("s-tug").textContent="Red "+rw+"%";document.documentElement.style.setProperty("--rw",rw+"%");
     drawChart(cu.curve,cu.x_label);drawGens(ge.generations);drawParams(ha);
   }catch(e){}
@@ -284,7 +306,8 @@ function render(){
 $("b-play").onclick=()=>{playing=!playing;$("b-play").textContent=playing?"⏸ Pause":"▶ Play";
   if(playing){timer=setInterval(step,900);}else{clearInterval(timer);}};
 $("b-step").onclick=step;$("b-new").onclick=newGame;
-$("b-train").onclick=async()=>{$("b-train").disabled=true;await api.post("/api/train",{generations:5,eval_games:6});refresh();};
+$("b-train").onclick=async()=>{$("b-train").disabled=true;await api.post("/api/train",{generations:5,eval_games:3});refresh();};
+$("b-stop").onclick=async()=>{await api.post("/api/train/stop");refresh();};
 (async()=>{await loadConfig();drawMap();await refresh();await newGame();setInterval(refresh,4000);
   if(new URLSearchParams(location.search).has("autoplay"))$("b-play").click();})();
 </script>

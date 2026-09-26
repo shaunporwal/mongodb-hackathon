@@ -121,31 +121,48 @@ def live_step():
 
 LEARNER = "red"  # this UI shows the RED attacker learning
 
-# Background trainer: one evolve subprocess at a time.
-_train_proc = {"p": None, "started": None}
+# Background trainer: one evolve subprocess at a time. Fast defaults for quick iteration.
+_train_proc = {"p": None, "started": None, "goal_generations": 0, "start_versions": 0}
 
 
 @app.post("/api/train")
-def train(generations: int = 5, eval_games: int = 6):
-    """Kick off a Red evolve run in the background (non-blocking)."""
+def train(generations: int = 3, eval_games: int = 3):
+    """Kick off a Red evolve run in the background (non-blocking). Fast, low-fidelity by design."""
     import subprocess
     import sys
     from datetime import datetime, timezone
     p = _train_proc["p"]
     if p and p.poll() is None:
-        return {**status(), "training": True, "note": "already training"}
+        return {**status(), "note": "already training"}
     _train_proc["p"] = subprocess.Popen(
         [sys.executable, "-m", "backend.evolve", "--env", "sim_red", "--learner", LEARNER,
          "--generations", str(generations), "--eval-games", str(eval_games), "--train-games", "1"],
         cwd=str(__import__("pathlib").Path(__file__).resolve().parent.parent),
     )
     _train_proc["started"] = datetime.now(timezone.utc).isoformat()
-    return {**status(), "training": True, "note": f"started {generations} generations"}
+    _train_proc["goal_generations"] = generations
+    _train_proc["start_versions"] = db.harness_versions().count_documents({"side": LEARNER})
+    return {**status(), "note": f"started {generations} generations"}
+
+
+@app.post("/api/train/stop")
+def train_stop():
+    """Stop the background training run."""
+    p = _train_proc["p"]
+    if p and p.poll() is None:
+        p.terminate()
+    return {**status(), "note": "stopped"}
 
 
 def _training() -> bool:
     p = _train_proc["p"]
     return bool(p and p.poll() is None)
+
+
+def _train_progress() -> dict:
+    """How far the current/last run has gotten, so the UI never looks frozen."""
+    done = db.harness_versions().count_documents({"side": LEARNER}) - _train_proc["start_versions"]
+    return {"goal": _train_proc["goal_generations"], "done": max(0, done)}
 
 
 @app.get("/api/curve")
@@ -158,7 +175,9 @@ def curve():
         best, pts = None, []
         for h in gens:
             if best is None:
-                best = h["eval"]["parent_win_rate"]
+                best = h["eval"].get("parent_win_rate")
+                if best is None:
+                    best = h["eval"]["win_rate"]
             if h["kept"]:
                 best = h["eval"]["win_rate"]
             pts.append({"episode": h["version"], "win_rate": best, "level": h["eval"]["level"],
@@ -183,7 +202,7 @@ def status():
             "harness_version": store.current_version(LEARNER)["version"],
             "current_level": cur["current_level"],
             "generations": db.harness_versions().count_documents({"side": LEARNER, "eval": {"$ne": None}}),
-            "learner": LEARNER, "training": _training()}
+            "learner": LEARNER, "training": _training(), "progress": _train_progress()}
 
 
 @app.get("/api/config")
@@ -236,9 +255,11 @@ def generations():
                 before, after = parent.get(f), h.get(f)
                 if before != after:
                     changes.append({"field": f, "before": before, "after": after})
+        ca = h.get("created_at")
         out.append({"version": h["version"], "parent": h.get("parent"),
                     "diff_summary": h.get("diff_summary"), "eval": h.get("eval"),
                     "kept": h.get("kept"), "level_unlocked": h.get("level_unlocked"),
+                    "created_at": ca.isoformat() if hasattr(ca, "isoformat") else ca,
                     "changes": changes})
     return {"generations": out}
 
