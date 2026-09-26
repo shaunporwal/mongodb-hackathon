@@ -1,38 +1,35 @@
 # Red vs Blue — Design Brief
 
-**How we made a self-improving agent legible in one minute.**
+**The design process behind the UI visuals in `docs/visuals/`.**
 
-This is the story behind the interface in `docs/visuals/`. The engineering
-problem was *harness engineering*: an agent that rewrites its own strategy and
-gets better over thousands of games. The design problem was harder — none of
-that shows up on a screen by itself. A win-rate number climbing in a database is
-invisible. Our job was to make the learning *watchable*, fast.
+The engineering problem was *harness engineering*: an agent that rewrites its own
+strategy and gets better over thousands of games. The design problem was harder —
+none of that shows up on a screen by itself. A win-rate number climbing in a
+database is invisible. Our job was to make the learning *watchable*: to turn
+abstract agent behavior into something a person can read at a glance.
 
-The judges first see a **60-second demo video**. That constraint drove every
-decision: no element earns its place unless a newcomer understands it at a
-glance, with no narration.
+This document explains how we got there — the principles, the system, and why
+each element looks the way it does.
 
 > Everything shown is a **simulation** — colored game pieces moving on a map.
 > No real systems, no real intrusions.
 
 ---
 
-## The 60-second cut
+## The design principle
 
-The video is the design target, not an afterthought. It carries **one image and
-one number**, in this order:
+We started from one sentence and refused any element that didn't serve it:
 
-| Time | On screen | The beat |
-|---|---|---|
-| 0–8s | Arena, attack path lighting up | "An AI attacker breaks into a pretend office." |
-| 8–22s | A **lesson card drawn from memory**, match 0.92, win-chance buff | "It remembers what worked last time." |
-| 22–34s | The move lands — Red reaches the crown jewel | "…and reuses it to win." |
-| 34–48s | Win-rate curve **14% → 71%** | "Over 142 games it taught itself." |
-| 48–58s | Memory **ON 71% vs OFF 38%** | "Turn the memory off and it forgets." |
-| 58–60s | MongoDB + repo | "Its memory is MongoDB Atlas + Vector Search." |
+> *"The attacker started clumsy, wrote down what worked, and taught itself to win."*
 
-If a viewer catches only two frames — the green lesson card and the climbing
-curve — they've understood the project. Everything else supports those two.
+That gave us two things a viewer must always be able to find:
+
+- **The learning event** — the moment the agent reuses something it learned
+  (a lesson recalled from memory).
+- **The proof** — the win rate climbing across games.
+
+Everything on screen either *is* one of those two things or points to them.
+When a candidate element helped neither, we cut it.
 
 ---
 
@@ -44,14 +41,13 @@ curve — they've understood the project. Everything else supports those two.
 | **Progress** | `progress_red_learns.html` | Prove the learning with four charts a non-expert can read |
 | **Concept** | `01_architecture`, `02_ddos_turn`, `05_any_node_rules` | How the harness, MongoDB and the model fit together |
 
-Open any `.html` in a browser — the arena is animated, and every frame of the
-video is captured live from it.
+Open any `.html` in a browser — the arena is animated.
 
 ---
 
 ## The design system
 
-One small, strict token set, so every screen and every frame reads as one product.
+One small, strict token set, so every screen reads as one product.
 
 **Color is meaning, never decoration.**
 
@@ -66,27 +62,30 @@ One small, strict token set, so every screen and every frame reads as one produc
 
 The most important choice: **green is reserved for memory.** Recall notes, the
 lesson deck, the match score, the "lessons written" counter — all green, and
-nothing else is. In a 60-second video the eye has no time to hunt, so when green
-flashes, the viewer already knows: *the agent just used its past.*
+nothing else is. Memory is what separates this agent from a scripted one, so it
+gets a color no other element may borrow. When green appears, the viewer knows
+the agent is thinking with its past.
 
 **Type does the ranking.** Chakra Petch (squared, technical) for the HUD numbers
 and labels; IBM Plex Sans for anything read as a sentence; IBM Plex Mono for
 machine details (turn tags, MITRE IDs, match scores). Three roles, no drift.
 
-**Motion is a pointer.** Attack traffic flows *toward* its target so the eye
-follows the threat. A node under attack pulses; a taken node goes still. The
-recall beam animates from the device to the lesson card so cause and effect are
-unmistakable in a single pass. Nothing moves that isn't telling you where to look
-— critical when there are only 60 seconds and no voice-over.
+**Motion is a pointer, not an effect.** Attack traffic flows *toward* its target
+so the eye follows the threat. A node under attack pulses; a taken node goes
+still. The recall beam animates from the device to the lesson card so cause and
+effect are unmistakable. Nothing moves unless it is telling you where to look.
+
+**Layout is a HUD.** The board owns two-thirds of the screen; the play-by-play
+log runs down the side; state (game, level, win rate, lessons) sits in a top bar
+that reads like a game's status strip. Summary before detail, always.
 
 ---
 
 ## Making "memory" a game mechanic
 
 The technical claim is "the agent stores lessons in MongoDB and retrieves them by
-meaning with Vector Search." That sentence means nothing to most people, and
-there's no time to explain it. So we turned it into something everyone already
-understands — **a deck of cards.**
+meaning with Vector Search." That sentence means little to most people, so we
+translated it into something everyone already understands — **a deck of cards.**
 
 - A **memory deck** in the corner shows the pool: *142 lessons in memory.*
 - When the agent recalls one, a **card is drawn** and played: the lesson, a
@@ -95,16 +94,17 @@ understands — **a deck of cards.**
 - The card footer says exactly where it came from: *drawn from 142 lessons in
   MongoDB · matched by meaning.*
 
-This is the video's payoff frame. A viewer doesn't need to know what an embedding
-is to watch the agent *play a card it learned three games ago and win with it.*
-The database stops being plumbing and becomes the move that wins the game.
+This reframes the database. It stops being plumbing and becomes the move that
+wins the game — the recall you can watch happen. It's the clearest expression of
+the whole design principle.
 
 ---
 
 ## How each mechanic maps to a pixel
 
-We refused any UI that wasn't backed by real game state (the data lives in
-`games.csv`, `generations.csv`, `lessons.csv`, `scenarios.csv`).
+We refused any UI that wasn't backed by real game state. The data lives in the
+project's `games.csv`, `generations.csv`, `lessons.csv` and `scenarios.csv`, and
+every visual element traces back to a real field.
 
 | Game mechanic | What you see |
 |---|---|
@@ -116,22 +116,8 @@ We refused any UI that wasn't backed by real game state (the data lives in
 | Getting smarter over time | the 14% → 71% win-rate curve — the centerpiece |
 | Memory is what does it | a direct **memory ON 71% vs OFF 38%** comparison |
 
-That last chart is the honest test of the whole idea: turn recall off and the
-agent forgets the trick every game. The interface makes that falsifiable on
-screen, in one shot.
-
----
-
-## Why this wins the room
-
-- **Technical demo (35%)** — the product *is* the demo: a live board where the
-  agent visibly reuses memory to win, readable in 60 seconds with no narration.
-- **Implementation difficulty (30%)** — the UI surfaces the hard parts
-  (versioned strategy, vector recall, per-turn state) instead of hiding them.
-- **Impact (20%)** — a self-improving adversary is a real, current problem;
-  the simulation frames it responsibly.
-- **Creativity (15%)** — treating agent memory as a collectible-card mechanic is
-  a lens the judges haven't seen, and it makes an abstract system playful.
+That last chart is the honest test of the idea: turn recall off and the agent
+forgets the trick every game. The interface makes that falsifiable on screen.
 
 ---
 
@@ -140,9 +126,9 @@ screen, in one shot.
 - Self-contained HTML: fonts from Google Fonts, everything else inline. No build
   step — open the file.
 - The arena renders an animated map (rotating field, flowing traffic, pulsing
-  nodes, the recall beam and card) in plain SVG + a small canvas backdrop, so the
-  video is screen-captured from the real thing, not mocked.
+  nodes, the recall beam and card) in plain SVG plus a small canvas backdrop —
+  no framework, no external assets.
 - Diagrams are Mermaid — sources are the `.mmd` files, re-render with
   `npx @mermaid-js/mermaid-cli -i file.mmd -o file.png`.
-- Designed at 1600×900 for the demo screen; the layout is the storyboard v0 and
-  the frontend build follow.
+- Designed at 1600×900. These files are the storyboard the production frontend
+  build follows.
