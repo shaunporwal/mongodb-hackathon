@@ -10,7 +10,7 @@ export function LogPanel({ log, hoveredNodeId, onHoverNode }) {
 
   return (
     <div className="panel log-panel">
-      <div className="section-heading"><h3>02 / Activity feed</h3><span className="section-meta">Newest first</span></div>
+      <div className="section-heading"><h3>02 / Battle log</h3><span className="section-meta">Newest first</span></div>
       <div className="log-list" ref={listRef}>
         {log.map((entry, index) => (
           <div
@@ -25,7 +25,7 @@ export function LogPanel({ log, hoveredNodeId, onHoverNode }) {
             onMouseLeave={() => onHoverNode(null)}
           >
             <div className="log-entry-main">
-              <span className={`log-turn-tag log-turn-tag-${entry.side.toLowerCase()}`}>{entry.side === "RED" ? "R" : entry.side === "BLUE" ? "B" : "M"} / {String(entry.turn).padStart(2, "0")}</span>
+              <span className={`log-turn-tag log-turn-tag-${entry.side.toLowerCase()}`}>{entry.side} / {String(entry.turn).padStart(2, "0")}</span>
               <span className="log-entry-text">{entry.text}</span>
             </div>
             {entry.detail && <div className="log-entry-detail">{entry.detail}</div>}

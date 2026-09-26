@@ -37,3 +37,9 @@ Desktop pairs the network with activity; three supporting modules sit underneath
 ## Interaction
 
 Explicit focus rings, named icon buttons, pressed state for speed controls, pointer-only hover treatments. Preserve recorded-game data and replay behavior. No decorative page-entry motion. A lazy-loaded WebGL sphere sits behind the network, with a red/blue Fresnel rim, wireframe, and slow orbital rings. It never intercepts pointers. Reduced motion freezes rotation; offscreen and hidden-page rendering uses demand frames. Pixel ratio is capped at 1.5, and WebGL failure leaves the SVG network available. Result feedback sits near the bottom rather than covering the network center.
+
+## Arena composition
+
+The local arena_red_learns.html reference informs interaction and information hierarchy, not the typography or palette. Keep Manrope and the current dark tokens. A match HUD shows captured and secure device counts (excluding the Internet endpoint), fixed defense level, playback state, and turn number. These counts do not imply all non-captured devices are secure; isolated and attacked devices retain their own states.
+
+Device icons, labeled status rings, curved connections, and the latest event's source-to-target route turn the diagram into an arena. Routes represent recorded events, including unsuccessful attempts; they are not inferred exploit paths. Packets stop while replay is paused. Device inspection supports pointer, Enter/Space, and Escape. Recalled memory names its recorded actor, including Blue. The newest event receives a single inset accent; older rows retain simple rules.

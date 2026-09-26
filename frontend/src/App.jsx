@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useGameReplay } from "./hooks/useGameReplay";
+import { ArenaHud } from "./components/ArenaHud";
 import { TopBar } from "./components/TopBar";
 import { NetworkScene } from "./components/NetworkScene";
 import { LogPanel } from "./components/LogPanel";
@@ -33,13 +34,13 @@ function App() {
   return (
     <div className="app-shell">
       <TopBar state={state} />
-      <header className="page-heading"><h1 className="eyebrow">Replay lab</h1></header>
+      <ArenaHud state={state} isPlaying={isPlaying} />
       <div className="mid">
-        <NetworkScene state={state} hoveredNodeId={hoveredNodeId} onHoverNode={setHoveredNodeId} />
+        <NetworkScene isPlaying={isPlaying} state={state} hoveredNodeId={hoveredNodeId} onHoverNode={setHoveredNodeId} />
         <LogPanel log={state.log} hoveredNodeId={hoveredNodeId} onHoverNode={setHoveredNodeId} />
       </div>
       <div className="bot">
-        <BottomControls isPlaying={isPlaying} speed={speed} onPlay={play} onPause={pause} onStep={step} onSpeedChange={setSpeed} />
+        <BottomControls turn={state.turn} maxTurns={state.maxTurns} isPlaying={isPlaying} speed={speed} onPlay={play} onPause={pause} onStep={step} onSpeedChange={setSpeed} />
         <WinRateSparkline history={state.redWinRateHistory} gameNumber={state.gameNumber} />
         <LevelLadder currentLevel={state.level} />
       </div>
