@@ -83,3 +83,6 @@ One LLM call per Blue turn with a small prompt. Cap lessons to k from memory_pol
 
 ## Dev notes
 - venv: `.venv` at repo root (`uv venv` + `uv pip install -r requirements.txt`). Run modules from repo root: `.venv/bin/python -m backend.<module>`.
+- Env interface (what backend/sim.py must provide: `make_env(level, seed)`) is documented at the top of backend/adapter.py. backend/stub_env.py is a content-free stand-in for plumbing tests (`--env stub`); the runner auto-uses sim.py when it exists.
+- Without VOYAGE_API_KEY, lessons are stored un-embedded and recall falls back to latest-k by level.
+- After stub tests, wipe stub games/events/lessons from Atlas so the UI team doesn't see them.

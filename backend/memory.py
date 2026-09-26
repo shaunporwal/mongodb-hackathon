@@ -19,6 +19,10 @@ def voyage() -> voyageai.Client:
     return voyageai.Client(api_key=key)
 
 
+def has_voyage() -> bool:
+    return bool(os.environ.get("VOYAGE_API_KEY"))
+
+
 def embed(texts: list[str], input_type: str) -> list[list[float]]:
     """input_type: 'document' when storing, 'query' when recalling."""
     return voyage().embed(texts, model=EMBED_MODEL, input_type=input_type,
@@ -32,12 +36,15 @@ def add_lessons(texts: list[str], level: int, game_id, harness_version: int,
     if not texts:
         return []
     now = datetime.now(timezone.utc)
-    docs = [
-        {"_id": db.next_id("lessons"), "side": side, "level": level, "game_id": game_id,
-         "harness_version": harness_version,
-         "text": t, "embedding": e, "created_at": now}
-        for t, e in zip(texts, embed(texts, "document"))
-    ]
+    # Without a Voyage key, lessons are stored un-embedded and recall falls back to recency.
+    vectors = embed(texts, "document") if has_voyage() else [None] * len(texts)
+    docs = []
+    for t, e in zip(texts, vectors):
+        doc = {"_id": db.next_id("lessons"), "side": side, "level": level, "game_id": game_id,
+               "harness_version": harness_version, "text": t, "created_at": now}
+        if e is not None:
+            doc["embedding"] = e
+        docs.append(doc)
     return db.lessons().insert_many(docs).inserted_ids
 
 
@@ -64,6 +71,10 @@ def recall(situation_text: str, memory_policy: dict | None, level: int,
     filt = {"side": side}
     if policy["filter_by_level"]:
         filt["level"] = level
+    if not has_voyage():
+        latest = db.lessons().find(filt, {"text": 1, "level": 1}).sort("created_at", -1).limit(k)
+        return [{"_id": h["_id"], "text": h["text"], "level": h["level"], "score": None}
+                for h in latest]
     pipeline = [
         {"$vectorSearch": {
             "index": db.VECTOR_INDEX, "path": "embedding",
