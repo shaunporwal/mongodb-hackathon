@@ -1,0 +1,6 @@
+# Core engine + trainer use ONLY the Python standard library (no deps).
+# These are for the Atlas persistence layer and the web API.
+pymongo>=4.7
+python-dotenv>=1.0
+fastapi>=0.110
+uvicorn[standard]>=0.29
