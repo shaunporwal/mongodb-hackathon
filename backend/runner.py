@@ -46,9 +46,9 @@ def upsert_network(env) -> None:
 @traceable(name="play_game")
 def play_game(level: int, seed: int, blue_mode: str = "random", harness: dict | None = None,
               memory_enabled: bool = True, purpose: str = "train", do_reflect: bool = False,
-              make_env=None, verbose: bool = False) -> dict:
+              make_env=None, verbose: bool = False, learner: str = "blue") -> dict:
     make_env = make_env or env_factory()
-    harness = harness or store.current_version()
+    harness = harness or store.current_version(learner)
     env = make_env(level, seed)
     upsert_network(env)
     adapter = SimAdapter(env)
@@ -87,7 +87,7 @@ def play_game(level: int, seed: int, blue_mode: str = "random", harness: dict | 
             break
 
         if blue_mode == "llm":
-            choice = blue.choose_action(adapter, harness, level, memory_enabled, history)
+            choice = blue.choose_action(adapter, harness, level, memory_enabled, history, side=learner)
         else:
             choice = blue.choose_random(adapter, rng)
         sample_prompt = choice.get("prompt") or sample_prompt
@@ -112,7 +112,7 @@ def play_game(level: int, seed: int, blue_mode: str = "random", harness: dict | 
 
     if do_reflect and blue_mode == "llm":
         from backend.reflect import reflect
-        ids, usage = reflect(game, events)
+        ids, usage = reflect(game, events, learner=learner)
         game["lessons_written"] = len(ids)
         game["tokens_in"] += usage["tokens_in"]
         game["tokens_out"] += usage["tokens_out"]

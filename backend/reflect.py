@@ -1,12 +1,8 @@
-"""Post-game reflection: 1-3 short, reusable lessons for Blue, written to memory."""
+"""Post-game reflection: 1-3 short, reusable lessons for the learner side, written to memory."""
 from langsmith import traceable
 
 from backend import llm, memory
-
-SYSTEM = """You review a finished turn-based SIMULATED network-defense game from BLUE's side.
-Write 1-3 short lessons (max 25 words each) that would help Blue win future games at this level.
-Lessons must be concrete and reusable: name signals, actions, nodes, or timing. No generic advice.
-Reply with JSON only: {"lessons": ["...", "..."]}"""
+from backend.prompts import BLUE_REFLECT_SYSTEM as SYSTEM, REFLECT_SYSTEM_FOR
 
 
 def _log_lines(events: list[dict], learner: str = "blue", limit: int = 40) -> str:
@@ -22,9 +18,10 @@ def _log_lines(events: list[dict], learner: str = "blue", limit: int = 40) -> st
 
 @traceable(name="reflect_game")
 def reflect(game: dict, events: list[dict], learner: str = "blue",
-            system: str = SYSTEM) -> tuple[list, dict]:
-    """Write 1-3 lessons from the learner's side. `system` is the reflection prompt;
-    pass a Red-perspective prompt when the learner is Red. Returns (lesson_ids, usage)."""
+            system: str | None = None) -> tuple[list, dict]:
+    """Write 1-3 lessons from the learner's side. `system` defaults to that side's
+    reflection prompt in backend/prompts.py. Returns (lesson_ids, usage)."""
+    system = system or REFLECT_SYSTEM_FOR.get(learner) or SYSTEM
     user = (f"Level {game['level']}. Winner: {game['winner']} ({game.get('win_condition')}) "
             f"after {game['turns']} turns.\nEVENT LOG:\n{_log_lines(events, learner)}")
     try:

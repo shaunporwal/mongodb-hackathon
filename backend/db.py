@@ -87,7 +87,7 @@ def ensure_indexes() -> None:
     events().create_index([("ts", DESCENDING)])
     games().create_index([("started_at", DESCENDING)])
     games().create_index([("level", ASCENDING), ("purpose", ASCENDING)])
-    harness_versions().create_index([("version", ASCENDING)], unique=True)
+    harness_versions().create_index([("side", ASCENDING), ("version", ASCENDING)], unique=True)
     lessons().create_index([("level", ASCENDING), ("created_at", DESCENDING)])
 
     # The collection must exist before a search index can be created on it.

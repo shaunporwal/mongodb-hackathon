@@ -11,24 +11,7 @@ from langsmith import traceable
 
 from backend import llm, memory
 
-SYSTEM = """You are BLUE, the defender in a turn-based SIMULATED network-defense game.
-You only see noisy signals, not the attacker's true position. One action per turn.
-Detect actions reveal information; respond actions clean up; harden and deceive prevent.
-Win by surviving 20 turns or fully evicting the attacker. Protect the crown-jewel database.
-
-ACTIONS:
-{actions}
-
-PLAYBOOK:
-{playbook}
-
-GUARDRAILS (hard rules, violations are rejected):
-{guardrails}
-
-SIGNAL PRIORITY (highest first): {signals}
-ALERT THRESHOLDS (ignore weaker signals): {thresholds}
-
-Reply with JSON only: {{"action": "<action>", "target": "<target>", "reason": "<one short sentence>"}}"""
+from backend.prompts import BLUE_SYSTEM as SYSTEM  # noqa: F401  default (Blue) system prompt
 
 USER = """TURN {turn} (level {level})
 SIGNALS: {signals}
@@ -120,8 +103,8 @@ def fallback(legal: list[dict], guardrails: list[str], history: list[dict],
 
 def build_prompt(harness: dict, obs: dict, signals: list[str], lessons: list[dict],
                  legal: list[dict], history: list[dict], level: int, error: str = "",
-                 action_help: dict | None = None) -> tuple[str, str]:
-    system = SYSTEM.format(
+                 action_help: dict | None = None, system_template: str = SYSTEM) -> tuple[str, str]:
+    system = system_template.format(
         actions="\n".join(f"- {a}: {d}" for a, d in (action_help or {}).items()) or "- see legal actions",
         playbook=harness["playbook"],
         guardrails="\n".join(f"- {g}" for g in harness.get("guardrails") or []) or "- none",
@@ -145,24 +128,27 @@ def situation_text(signals: list[str], level: int) -> str:
     return f"level {level}; signals: " + ("; ".join(signals) if signals else "quiet turn, no signals")
 
 
-@traceable(name="blue_choose_action")
+@traceable(name="choose_action")
 def choose_action(adapter, harness: dict, level: int, memory_enabled: bool,
-                  history: list[dict]) -> dict:
-    """One Blue decision. Returns {action, target, reason, recalled, guardrail_blocked,
-    signals_seen, tokens_in, tokens_out, prompt}."""
+                  history: list[dict], side: str = "blue") -> dict:
+    """One learner decision (Blue by default; pass side='red' for the attacker learner).
+    Returns {action, target, reason, recalled, guardrail_blocked, signals_seen,
+    tokens_in, tokens_out, prompt}."""
+    from backend.prompts import system_for
+    system_template = system_for(side)
     obs = adapter.observe()
     legal = adapter.legal_actions()
     action_help = adapter.describe_actions()
     signals = filter_signals(obs.get("signals") or [], harness)
     guardrails = harness.get("guardrails") or []
     lessons = memory.recall(situation_text(signals, level), harness.get("memory_policy"),
-                            level) if memory_enabled else []
+                            level, side=side) if memory_enabled else []
 
     tokens_in = tokens_out = 0
     blocked, error, prompt = None, "", None
     for _ in range(2):  # first try + one retry
         system, user = build_prompt(harness, obs, signals, lessons, legal, history, level, error,
-                                    action_help)
+                                    action_help, system_template)
         prompt = {"system": system, "user": user}
         try:
             out, usage = llm.chat_json(system, user, kind="move", max_tokens=150)

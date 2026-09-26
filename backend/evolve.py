@@ -95,22 +95,24 @@ def win_rate(harness: dict, level: int, seeds: list[int], make_env, memory_enabl
              learner: str = LEARNER) -> float:
     """Fraction of games the learner's side wins."""
     wins = sum(play_game(level, s, "llm", harness=harness, memory_enabled=memory_enabled,
-                         purpose="eval", make_env=make_env)["winner"] == learner for s in seeds)
+                         purpose="eval", make_env=make_env, learner=learner)["winner"] == learner
+               for s in seeds)
     return wins / len(seeds)
 
 
 @traceable(name="evolve_generation")
-def generation(eval_games: int, train_games: int, make_env) -> dict | None:
-    cur = store.get_curriculum()
+def generation(eval_games: int, train_games: int, make_env, learner: str = LEARNER) -> dict | None:
+    cur = store.get_curriculum(learner)
     level = cur["current_level"]
     if level > MAX_LEVEL:
         print("curriculum complete: all levels cleared")
         return None
-    parent = store.current_version()
+    parent = store.current_version(learner)
 
     # 1) train: play + reflect so memory and loss history grow
     for s in seeds_for(level, train_games, offset=100 + parent["version"] * 10):
-        play_game(level, s, "llm", harness=parent, purpose="train", do_reflect=True, make_env=make_env)
+        play_game(level, s, "llm", harness=parent, purpose="train", do_reflect=True,
+                  make_env=make_env, learner=learner)
 
     # 2) propose one mutation
     changes, summary = propose(parent, level)
@@ -118,14 +120,14 @@ def generation(eval_games: int, train_games: int, make_env) -> dict | None:
 
     # 3) evaluate both on the same fixed seeds
     seeds = seeds_for(level, eval_games)
-    parent_wr = win_rate(parent, level, seeds, make_env)
-    child_wr = win_rate(child, level, seeds, make_env)
+    parent_wr = win_rate(parent, level, seeds, make_env, learner=learner)
+    child_wr = win_rate(child, level, seeds, make_env, learner=learner)
     kept = child_wr > parent_wr
-    store.record_eval(child["version"], level, eval_games, child_wr, parent_wr, kept)
+    store.record_eval(child["version"], level, eval_games, child_wr, parent_wr, kept, side=learner)
 
     # 4) curriculum: the surviving version's score decides if the level is cleared
     best_version, best_wr = (child["version"], child_wr) if kept else (parent["version"], parent_wr)
-    cur_after = store.maybe_advance(best_wr, best_version, MAX_LEVEL)
+    cur_after = store.maybe_advance(best_wr, best_version, MAX_LEVEL, side=learner)
     print(f"v{child['version']} (parent v{parent['version']}) L{level}: "
           f"{'KEPT' if kept else 'rolled back'}  win {child_wr:.2f} vs {parent_wr:.2f}  "
           f"| {summary}" + (f"  >> level {cur_after['current_level']} unlocked"
@@ -140,12 +142,13 @@ def main():
     ap.add_argument("--eval-games", type=int, default=6)
     ap.add_argument("--train-games", type=int, default=2)
     ap.add_argument("--env", choices=["auto", "sim", "stub"], default="auto")
+    ap.add_argument("--learner", choices=["blue", "red"], default=LEARNER)
     a = ap.parse_args()
     db.ensure_indexes()
     make_env = env_factory(a.env)
-    store.seed_v0()
+    store.seed_v0(a.learner)
     for _ in range(a.generations):
-        if generation(a.eval_games, a.train_games, make_env) is None:
+        if generation(a.eval_games, a.train_games, make_env, learner=a.learner) is None:
             break
 
 
