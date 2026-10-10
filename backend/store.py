@@ -1,4 +1,4 @@
-"""Loaders/savers for harness_versions and curriculum (shapes per CLAUDE.md data contract).
+"""Loaders/savers for harness_versions and curriculum (shapes per AGENTS.md data contract).
 
 Blue and Red learners keep separate lineages in the same collections, tagged by `side`.
 """
