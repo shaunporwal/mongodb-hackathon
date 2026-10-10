@@ -1,7 +1,7 @@
 # PR plan: `backend-foundation` → `main`
 
 Handoff doc for the next agent. **Last updated 2026-09-26, afternoon (hackathon day).**
-Read [CLAUDE.md](../CLAUDE.md) first: it has the full project brief, the agreed data contract and the original build order.
+Read [AGENTS.md](../AGENTS.md) first: it has the full project brief, the agreed data contract and the original build order.
 
 ## PIVOT (2026-09-26 afternoon): the learner becomes RED
 
@@ -108,7 +108,7 @@ The rest of this doc describes the Blue-learner build; almost all of it is reuse
    - At 18 requests/min, a 20-turn game takes about 1 minute, so one generation (1 train + 2×3 eval games) takes about 8 minutes.
    - With only 3 eval games, ties are common and roll back. Use `--eval-games 4` or more if there's time.
    - If a failed run leaves a game with `winner: null` or a harness version with `eval: null`, delete those before continuing.
-3. **Red levels 2–5.** The teammate should add these to `red-vs-blue/agents/red.py`, e.g. `ScriptedRed(seed, level)`, following CLAUDE.md "Red levels" and the team's `scenarios.csv`. Then pass `level` through in `EngineEnv.__init__` in `backend/sim.py`. Without this, levels are cosmetic.
+3. **Red levels 2–5.** The teammate should add these to `red-vs-blue/agents/red.py`, e.g. `ScriptedRed(seed, level)`, following AGENTS.md "Red levels" and the team's `scenarios.csv`. Then pass `level` through in `EngineEnv.__init__` in `backend/sim.py`. Without this, levels are cosmetic.
    - The previous agent (Claude) was repeatedly stopped by a safety classifier when writing Red or simulator logic, even though it's simulation only. Have a human write this part, or reuse existing code.
 4. **Seed demo data:** run `python -m backend.runner --env sim --demo` (random Blue, 3 games per level, no LLM cost).
 5. **Run compare:** `python -m backend.compare --env sim --games 4`. This spends LLM credits.
@@ -139,7 +139,7 @@ The rest of this doc describes the Blue-learner build; almost all of it is reuse
 - **UI:**
   - "Play" replays games; it doesn't run new ones.
   - `patched` and `blocked` aren't in our event contract, so the map never shows shields or blocked links.
-- **Data contract:** it was updated from the team's CSVs (see CLAUDE.md). The UI team needs that version.
+- **Data contract:** it was updated from the team's CSVs (see AGENTS.md). The UI team needs that version.
 - **Security cleanup after the hackathon:**
   - The Atlas user `redblue` has `atlasAdmin` and a weak password. Downgrade or delete it.
   - The OpenRouter key was pasted in a chat. Rotate it.

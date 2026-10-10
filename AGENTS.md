@@ -1,4 +1,4 @@
-# CLAUDE.md — Red vs. Blue: a self-improving cyber defense harness
+# AGENTS.md — Red vs. Blue: a self-improving cyber defense harness
 
 Hackathon project (MongoDB "Harness Engineering" hackathon, NYC, 2026-09-26). Submission due the same afternoon: favor simple, working code over clever code. Build incrementally, test each step, stop at checkpoints marked >>>.
 
@@ -65,7 +65,7 @@ Agreed 2026-09-26 from the team's sample CSVs (events/games/generations/lessons)
 - counters (internal): { _id:"games"|"lessons", seq }
 
 ## Build order
-1. CLAUDE.md, requirements.txt, .gitignore, .env.example
+1. AGENTS.md, requirements.txt, .gitignore, .env.example
 2. backend/db.py: client, collection handles, ping, index creation
 3. backend/sim.py: network, hidden state, Red levels 1-5, Blue legal actions, signals/observation, apply(), winner(). Pure Python. Smoke test: random Blue vs. each level.
 4. backend/adapter.py: SimAdapter with observe() and act(). Blue code ONLY touches the world through this.
